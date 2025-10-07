@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import axios from "axios";
+import toast from "react-hot-toast";
 const base = "/api/v1";
 
 export default function Home() {
@@ -11,7 +12,8 @@ export default function Home() {
     const [loading, setLoading] = useState(false);
 
     const commit = async () => {
-        if (!credId || !choice) return alert("Isi CredID dan Choice dulu");
+        if (!credId || !choice)
+            return toast.error("Isi CredID dan Choice dulu");
         try {
             setLoading(true);
             // gunakan snake_case supaya cocok dengan api/main.go
@@ -20,9 +22,9 @@ export default function Home() {
                 choice: choice,
             });
             setSalt(r.data.salt);
-            alert("Commit OK. Simpan salt: " + r.data.salt);
+            toast.success("Commit OK. Simpan salt: " + r.data.salt);
         } catch (e) {
-            alert(e?.response?.data || e.message);
+            toast.error(e?.response?.data || e.message);
         } finally {
             setLoading(false);
         }
@@ -30,7 +32,7 @@ export default function Home() {
 
     const reveal = async () => {
         if (!credId || !choice || !salt)
-            return alert("CredID, Choice dan Salt harus diisi");
+            return toast.error("CredID, Choice dan Salt harus diisi");
         try {
             setLoading(true);
             await axios.post(`${base}/vote/reveal`, {
@@ -38,9 +40,9 @@ export default function Home() {
                 salt: salt,
                 choice: choice,
             });
-            alert("Reveal OK");
+            toast.success("Reveal OK");
         } catch (e) {
-            alert(e?.response?.data || e.message);
+            toast.error(e?.response?.data || e.message);
         } finally {
             setLoading(false);
         }
@@ -52,8 +54,9 @@ export default function Home() {
             const r = await axios.get(`${base}/tally`);
             const b64 = r.data?.result?.response?.value || "";
             setResult(b64 ? JSON.parse(atob(b64)) : r.data);
+            toast.success("Tally diperbarui");
         } catch (e) {
-            alert(e?.response?.data || e.message);
+            toast.error(e?.response?.data || e.message);
         } finally {
             setLoading(false);
         }
@@ -62,22 +65,18 @@ export default function Home() {
     const copySalt = async () => {
         try {
             await navigator.clipboard.writeText(salt);
-            alert("Salt disalin ke clipboard");
+            toast.success("Salt disalin ke clipboard");
         } catch {
-            alert("Gagal menyalin");
+            toast.error("Gagal menyalin");
         }
     };
 
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
             <div className="w-full max-w-xl bg-white shadow-md rounded-lg p-6 text-black">
-                <h1 className="text-2xl font-semibold mb-4">
-                   Blockchain demo
-                </h1>
+                <h1 className="text-2xl font-semibold mb-4">Blockchain demo</h1>
 
-                <label className="block text-sm font-medium">
-                    CredID
-                </label>
+                <label className="block text-sm font-medium">CredID</label>
                 <input
                     className="mt-1 mb-3 block w-full rounded border px-3 py-2 focus:outline-none focus:ring"
                     placeholder="masukkan cred id..."
@@ -85,9 +84,7 @@ export default function Home() {
                     onChange={(e) => setCredId(e.target.value)}
                 />
 
-                <label className="block text-sm font-medium">
-                    Choice
-                </label>
+                <label className="block text-sm font-medium">Choice</label>
                 <select
                     className="mt-1 mb-3 block w-32 rounded border px-3 py-2"
                     value={choice}
@@ -147,8 +144,6 @@ export default function Home() {
                             : "Belum ada hasil"}
                     </pre>
                 </div>
-
-               
             </div>
         </div>
     );
