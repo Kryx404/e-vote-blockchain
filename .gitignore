@@ -1,21 +1,34 @@
-# Go
-/bin/
-/vendor/
-/*.exe
+# Go (backend)
+backend/bin/
+backend/vendor/
+backend/*.exe
+backend/*.test
+# per-submodule/build outputs
+backend/api/bin/
+backend/app/bin/
+backend/**/vendor/
+# modul/temp files
+*.exe
 *.test
 
-# Node / Next
-/frontend/node_modules/
-/frontend/.next/
-/frontend/build/
+# Node / Next (frontend)
+frontend/node_modules/
+frontend/.next/
+frontend/build/
+# next/turbopack caches (dev)
+frontend/.turbo/
+# env
+frontend/.env
+frontend/.env.local
+frontend/.env.development
+frontend/.env.production
 
 # OS
 .DS_Store
 
-# env
-.env
-.env.local
-
 # editor
 .vscode/
 .idea/
+
+# local secrets / runtime
+.env
