@@ -1,23 +1,35 @@
 "use client";
-import { useState } from "react";
-import axios from "axios";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import api from "../lib/api";
 const base = "/api/v1";
 
 export default function Home() {
+    const router = useRouter();
     const [credId, setCredId] = useState("");
     const [choice, setChoice] = useState("A");
     const [salt, setSalt] = useState("");
     const [result, setResult] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [email, setEmail] = useState("");
+
+    useEffect(() => {
+        const t = localStorage.getItem("token");
+        const e = localStorage.getItem("email");
+        if (!t) {
+            router.push("/login");
+        } else {
+            setEmail(e);
+        }
+    }, [router]);
 
     const commit = async () => {
         if (!credId || !choice)
             return toast.error("Isi CredID dan Choice dulu");
         try {
             setLoading(true);
-            // gunakan snake_case supaya cocok dengan api/main.go
-            const r = await axios.post(`${base}/vote/commit`, {
+            const r = await api.post("/vote/commit", {
                 cred_id: credId,
                 choice: choice,
             });
@@ -35,7 +47,7 @@ export default function Home() {
             return toast.error("CredID, Choice dan Salt harus diisi");
         try {
             setLoading(true);
-            await axios.post(`${base}/vote/reveal`, {
+            await api.post("/vote/reveal", {
                 cred_id: credId,
                 salt: salt,
                 choice: choice,
@@ -51,7 +63,7 @@ export default function Home() {
     const getTally = async () => {
         try {
             setLoading(true);
-            const r = await axios.get(`${base}/tally`);
+            const r = await api.get("/tally");
             const b64 = r.data?.result?.response?.value || "";
             setResult(b64 ? JSON.parse(atob(b64)) : r.data);
             toast.success("Tally diperbarui");

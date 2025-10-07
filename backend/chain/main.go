@@ -7,7 +7,7 @@ import (
 	"syscall"
 
 	abciserver "github.com/cometbft/cometbft/abci/server"
-	"evote/chain/app" 
+	"evote/backend/chain/app" 
 )
 
 func main() {

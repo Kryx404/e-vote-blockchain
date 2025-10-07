@@ -10,6 +10,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+
+	// ganti import berikut sesuai module path di go.mod
+	"evote/backend/internal/auth"
 )
 
 func env(k, def string) string { if v := os.Getenv(k); v != "" { return v }; return def }
@@ -78,10 +81,56 @@ func tally(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(res)
 }
 
+// tambahkan helper CORS wrapper
+func withCORS(h http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000") // dev: domain frontend
+        w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        w.Header().Set("Access-Control-Allow-Credentials", "true")
+        if r.Method == http.MethodOptions {
+            w.WriteHeader(http.StatusOK)
+            return
+        }
+        h.ServeHTTP(w, r)
+    })
+}
+
+// tambahkan login handler
+func loginHandler(w http.ResponseWriter, r *http.Request) {
+    if r.Method == http.MethodOptions {
+        w.WriteHeader(http.StatusOK)
+        return
+    }
+    if r.Method != http.MethodPost {
+        http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
+    var in struct {
+        Email    string `json:"email"`
+        Password string `json:"password"`
+    }
+    if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+        http.Error(w, "bad json", http.StatusBadRequest)
+        return
+    }
+    token, ok := auth.Authenticate(in.Email, in.Password)
+    if !ok {
+        json.NewEncoder(w).Encode(map[string]any{"ok": false, "error": "invalid credentials"})
+        return
+    }
+    json.NewEncoder(w).Encode(map[string]any{"ok": true, "token": token, "email": in.Email})
+}
+
 func main() {
-	http.HandleFunc("/vote/commit", commit)
-	http.HandleFunc("/vote/reveal", reveal)
-	http.HandleFunc("/tally",       tally)
-	log.Println("REST API on :8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+    mux := http.NewServeMux()
+    mux.HandleFunc("/vote/commit", commit)
+    mux.HandleFunc("/vote/reveal", reveal)
+    mux.HandleFunc("/tally", tally)
+
+    // daftar route login
+    mux.HandleFunc("/login", loginHandler)
+
+    log.Println("REST API on :8080")
+    log.Fatal(http.ListenAndServe(":8080", withCORS(mux)))
 }
