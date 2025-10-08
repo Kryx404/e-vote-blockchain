@@ -24,6 +24,17 @@ export default function Home() {
         }
     }, [router]);
 
+    // Tambah: fungsi logout
+    const handleLogout = () => {
+        try {
+            localStorage.removeItem("token");
+            localStorage.removeItem("email");
+        } catch {}
+        setEmail("");
+        toast.success("Logged out");
+        router.push("/login");
+    };
+
     const commit = async () => {
         if (!credId || !choice)
             return toast.error("Isi CredID dan Choice dulu");
@@ -86,7 +97,17 @@ export default function Home() {
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
             <div className="w-full max-w-xl bg-white shadow-md rounded-lg p-6 text-black">
-                <h1 className="text-2xl font-semibold mb-4">Blockchain demo</h1>
+                <div className="flex justify-between items-center mb-4">
+                    <h1 className="text-2xl font-semibold">Blockchain demo</h1>
+                    <div className="text-sm">
+                        {email && <span className="mr-3">Hi, {email}</span>}
+                        <button
+                            onClick={handleLogout}
+                            className="text-xs underline">
+                            Logout
+                        </button>
+                    </div>
+                </div>
 
                 <label className="block text-sm font-medium">CredID</label>
                 <input

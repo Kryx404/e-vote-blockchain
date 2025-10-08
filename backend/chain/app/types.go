@@ -1,3 +1,4 @@
+// defisi tipe transaksi blockchain
 package app
 
 type TxCommit struct {

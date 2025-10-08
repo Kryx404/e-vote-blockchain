@@ -1,3 +1,4 @@
+// smart contract utama untuk e-vote
 package app
 
 import (
@@ -20,6 +21,7 @@ type App struct {
 	appHash  []byte
 }
 
+// Buat 
 func NewApp() *App {
 	return &App{
 		commits:  map[string]string{},
@@ -29,6 +31,7 @@ func NewApp() *App {
 	}
 }
 
+// Hash dari byte slice
 func shaHex(b []byte) string {
 	sum := sha256.Sum256(b)
 	return fmt.Sprintf("%x", sum[:])
@@ -53,10 +56,12 @@ func (a *App) calcAppHash() []byte {
 
 /* ---------- optional: ABCI 2.0 Info/Commit ---------- */
 
+// Laporkan Info 
 func (a *App) Info(ctx context.Context, req *abcitypes.InfoRequest) (*abcitypes.InfoResponse, error) {
 	return &abcitypes.InfoResponse{Data: "e-vote-go", Version: "0.2-abci2"}, nil
 }
 
+// Commit 
 func (a *App) Commit(ctx context.Context, _ *abcitypes.CommitRequest) (*abcitypes.CommitResponse, error) {
 	// RetainHeight 0 untuk demo
 	return &abcitypes.CommitResponse{RetainHeight: 0}, nil

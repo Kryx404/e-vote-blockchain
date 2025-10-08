@@ -1,3 +1,4 @@
+// eksekusi hasil akhir transaksi blockchain
 package app
 
 import (
@@ -8,9 +9,11 @@ import (
 	abcitypes "github.com/cometbft/cometbft/abci/types"
 )
 
+// Eksekusi hasil akhir transaksi
 func (a *App) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlockRequest) (*abcitypes.FinalizeBlockResponse, error) {
 	results := make([]*abcitypes.ExecTxResult, 0, len(req.Txs))
 
+	// eksekusi tiap transaksi
 	for _, txBytes := range req.Txs {
 		res := &abcitypes.ExecTxResult{Code: 1}
 
@@ -21,6 +24,7 @@ func (a *App) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlockReq
 			continue
 		}
 
+		// eksekusi sesuai jenis
 		switch bk.Kind {
 		case "commit":
 			var tx TxCommit
@@ -28,12 +32,16 @@ func (a *App) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlockReq
 				res.Log = "bad commit json"
 				break
 			}
+			
+			// cek double commit
 			a.mu.Lock()
 			if _, exists := a.commits[tx.CredID]; exists {
 				a.mu.Unlock()
 				res.Log = "double commit"
 				break
 			}
+
+			// catat commitment
 			a.commits[tx.CredID] = tx.Commitment
 			a.mu.Unlock()
 			res.Code = 0
@@ -45,23 +53,28 @@ func (a *App) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlockReq
 				break
 			}
 
+			// cek commitment
 			a.mu.RLock()
 			expect := a.commits[tx.CredID]
 			already := a.revealed[tx.CredID]
 			a.mu.RUnlock()
 
+			// hitung ulang hash
 			got := shaHex([]byte(tx.Salt + "|" + tx.Choice + "|" + tx.CredID))
 			log.Printf("Reveal debug => cred=%s\n expect=%s\n got   =%s\n", tx.CredID, expect, got)
 
+			// cek double reveal
 			if already {
 				res.Log = "double reveal"
 				break
 			}
+			// commitment harus cocok
 			if expect == "" || expect != got {
 				res.Log = "commit mismatch"
 				break
 			}
 
+			// catat sudah reveal & hitung suara
 			a.mu.Lock()
 			a.revealed[tx.CredID] = true
 			a.tally[tx.Choice]++

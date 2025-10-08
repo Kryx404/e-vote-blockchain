@@ -1,3 +1,4 @@
+// entry point blockchain ABCI server
 package main
 
 import (

@@ -1,3 +1,4 @@
+// handle query dari client
 package app
 
 import (
@@ -7,6 +8,7 @@ import (
 	abcitypes "github.com/cometbft/cometbft/abci/types"
 )
 
+// Handle query dari client
 func (a *App) Query(ctx context.Context, req *abcitypes.QueryRequest) (*abcitypes.QueryResponse, error) {
 	switch req.Path {
 	case "/tally":
