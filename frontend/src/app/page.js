@@ -13,15 +13,17 @@ export default function Home() {
     const [result, setResult] = useState(null);
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState("");
+    const [hasCommitted, setHasCommitted] = useState(false); // <-- new: track apakah sudah commit
 
     useEffect(() => {
         const t = localStorage.getItem("token");
         const e = localStorage.getItem("email");
         if (!t) {
             router.push("/login");
-        } else {
-            setEmail(e);
+            return;
         }
+        setEmail(e);
+        // tidak lagi memakai localStorage untuk proteksi 1x vote; server yang memutuskan
     }, [router]);
 
     // Tambah: fungsi logout
@@ -29,19 +31,20 @@ export default function Home() {
         try {
             localStorage.removeItem("token");
             localStorage.removeItem("email");
+            // hapus flag voted saat logout supaya user lain di mesin sama bisa login bersih
+            localStorage.removeItem("voted");
         } catch {}
         setEmail("");
+        setHasCommitted(false);
         toast.success("Logged out");
         router.push("/login");
     };
 
     const commit = async () => {
-        if (!credId || !choice)
-            return toast.error("Isi CredID dan Choice dulu");
+        if (!choice) return toast.error("Pilih choice dulu");
         try {
             setLoading(true);
             const r = await api.post("/vote/commit", {
-                cred_id: credId,
                 choice: choice,
             });
             setSalt(r.data.salt);
@@ -54,14 +57,12 @@ export default function Home() {
     };
 
     const reveal = async () => {
-        if (!credId || !choice || !salt)
-            return toast.error("CredID, Choice dan Salt harus diisi");
+        if (!choice || !salt) return toast.error("Choice dan Salt harus diisi");
         try {
             setLoading(true);
             await api.post("/vote/reveal", {
-                cred_id: credId,
-                salt: salt,
-                choice: choice,
+                salt,
+                choice,
             });
             toast.success("Reveal OK");
         } catch (e) {
@@ -109,13 +110,7 @@ export default function Home() {
                     </div>
                 </div>
 
-                <label className="block text-sm font-medium">CredID</label>
-                <input
-                    className="mt-1 mb-3 block w-full rounded border px-3 py-2 focus:outline-none focus:ring"
-                    placeholder="masukkan cred id..."
-                    value={credId}
-                    onChange={(e) => setCredId(e.target.value)}
-                />
+                {/* CredID diambil dari token server-side (frontend tidak perlu mengirim) */}
 
                 <label className="block text-sm font-medium">Choice</label>
                 <select
@@ -126,6 +121,7 @@ export default function Home() {
                     <option value="B">B</option>
                 </select>
 
+                {/* Status vote: dihilangkan — server yang menentukan apakah sudah commit */}
                 <div className="flex gap-2 mb-4">
                     <button
                         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-60"
