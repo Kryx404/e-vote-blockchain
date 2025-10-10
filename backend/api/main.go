@@ -134,13 +134,10 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 // Mulai server
 func main() {
     mux := http.NewServeMux()
-    mux.HandleFunc("/vote/commit", commit)
-    mux.HandleFunc("/vote/reveal", reveal)
-    mux.HandleFunc("/tally", tally)
+    // daftar route di file terpisah
+    RegisterRoutes(mux)
 
-    // daftar route login
-    mux.HandleFunc("/login", loginHandler)
-
+    handler := withCORS(mux)
     log.Println("REST API on :8080")
-    log.Fatal(http.ListenAndServe(":8080", withCORS(mux)))
+    log.Fatal(http.ListenAndServe(":8080", handler))
 }
