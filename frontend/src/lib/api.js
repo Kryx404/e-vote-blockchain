@@ -1,26 +1,25 @@
 import axios from "axios";
 
-const baseURL = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8080";
-
+// gunakan relative base supaya rewrites Next.js tetap bekerja
 const api = axios.create({
-    baseURL,
-    headers: {
-        "Content-Type": "application/json",
-    },
+    baseURL: "/api/v1",
+    headers: { "Content-Type": "application/json" },
+    timeout: 15000,
 });
 
-// inject token from localStorage
-api.interceptors.request.use((config) => {
-    try {
-        const token = localStorage.getItem("token");
-        if (token) {
-            config.headers = config.headers || {};
-            config.headers.Authorization = `Bearer ${token}`;
+// tambahkan Authorization header dari localStorage setiap request
+api.interceptors.request.use(
+    (config) => {
+        if (typeof window !== "undefined") {
+            const token = localStorage.getItem("token");
+            if (token) {
+                config.headers = config.headers || {};
+                config.headers["Authorization"] = `Bearer ${token}`;
+            }
         }
-    } catch (e) {
-        // ignore (SSR or blocked)
-    }
-    return config;
-});
+        return config;
+    },
+    (err) => Promise.reject(err),
+);
 
 export default api;

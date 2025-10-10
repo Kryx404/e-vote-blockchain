@@ -203,6 +203,55 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(map[string]any{"ok": true, "token": token, "email": in.Email})
 }
 
+// Tangani status: cek on-chain apakah user sudah commit
+func statusHandler(w http.ResponseWriter, r *http.Request) {
+    if r.Method != http.MethodGet && r.Method != http.MethodOptions {
+        http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
+    if r.Method == http.MethodOptions {
+        w.WriteHeader(http.StatusOK)
+        return
+    }
+
+    // auth
+    authHeader := r.Header.Get("Authorization")
+    if authHeader == "" {
+        http.Error(w, "unauthorized", http.StatusUnauthorized)
+        return
+    }
+    parts := strings.SplitN(authHeader, " ", 2)
+    if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
+        http.Error(w, "unauthorized", http.StatusUnauthorized)
+        return
+    }
+    email, ok := auth.ValidateToken(parts[1])
+    if !ok {
+        http.Error(w, "unauthorized", http.StatusUnauthorized)
+        return
+    }
+
+    // query on-chain (pakai same encoding seperti commit handler)
+    b64Key := base64.StdEncoding.EncodeToString([]byte(email))
+    qres, err := jsonRPC("abci_query", map[string]any{"path": "/commit", "data": b64Key})
+    if err != nil {
+        http.Error(w, "failed to query chain: "+err.Error(), http.StatusInternalServerError)
+        return
+    }
+    log.Printf("abci_query status for %s: %v\n", url.PathEscape(email), qres)
+
+    committed := false
+    if rr, ok := qres["result"].(map[string]any); ok {
+        if resp, ok := rr["response"].(map[string]any); ok {
+            if val, _ := resp["value"].(string); val != "" {
+                committed = true
+            }
+        }
+    }
+
+    json.NewEncoder(w).Encode(map[string]any{"ok": true, "committed": committed})
+}
+
 // Mulai server
 func main() {
     mux := http.NewServeMux()

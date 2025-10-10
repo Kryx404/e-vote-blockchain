@@ -13,9 +13,50 @@ export default function Home() {
     const [result, setResult] = useState(null);
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState("");
-    const [hasCommitted, setHasCommitted] = useState(false); // <-- new: track apakah sudah commit
+    const [hasCommitted, setHasCommitted] = useState(false);
+    const [statusLoading, setStatusLoading] = useState(true); // Status loading state
 
     useEffect(() => {
+        const checkStatusWithToken = async (retryCount = 0) => {
+            // set true hanya saat first try
+            if (retryCount === 0) setStatusLoading(true);
+
+            const token = localStorage.getItem("token");
+            if (!token) {
+                router.push("/login");
+                return;
+            }
+
+            try {
+                console.log(`Cek status on-chain (try ${retryCount + 1})`);
+                // pakai timeout lebih pendek untuk status (override axios timeout)
+                const res = await api.get(`/vote/status?_t=${Date.now()}`, {
+                    timeout: 3000,
+                });
+                console.log("Status response:", res.data);
+                if (res?.data?.ok) {
+                    setHasCommitted(!!res.data.committed);
+                    // segera hentikan loading setelah dapat hasil
+                    setStatusLoading(false);
+                    return;
+                }
+            } catch (err) {
+                console.warn(
+                    "Cek status error:",
+                    err?.response?.data || err?.message,
+                );
+                // jika masih bisa retry, lakukan background retry singkat
+                if (retryCount < 2) {
+                    setTimeout(() => checkStatusWithToken(retryCount + 1), 800);
+                    return;
+                }
+            } finally {
+                // pastikan loading dimatikan setelah beberapa percobaan
+                setStatusLoading(false);
+            }
+        };
+
+        // jalankan segera (hapus delay 500ms)
         const t = localStorage.getItem("token");
         const e = localStorage.getItem("email");
         if (!t) {
@@ -23,48 +64,95 @@ export default function Home() {
             return;
         }
         setEmail(e);
-        // tidak lagi memakai localStorage untuk proteksi 1x vote; server yang memutuskan
+        checkStatusWithToken();
+
+        const handleFocus = () => {
+            if (document.visibilityState === "visible") checkStatusWithToken();
+        };
+        document.addEventListener("visibilitychange", handleFocus);
+        return () =>
+            document.removeEventListener("visibilitychange", handleFocus);
     }, [router]);
 
-    // Tambah: fungsi logout
+    // Logout handler
     const handleLogout = () => {
         try {
             localStorage.removeItem("token");
             localStorage.removeItem("email");
-            // hapus flag voted saat logout supaya user lain di mesin sama bisa login bersih
-            localStorage.removeItem("voted");
         } catch {}
         setEmail("");
         setHasCommitted(false);
+        setStatusLoading(true);
         toast.success("Logged out");
         router.push("/login");
     };
 
     const commit = async () => {
-        if (!choice) return toast.error("Pilih choice dulu");
+        if (statusLoading) {
+            toast.error("Sedang memeriksa status, tunggu sebentar");
+            return;
+        }
+
+        if (hasCommitted) {
+            toast.error("Sudah commit on-chain - tidak bisa commit lagi");
+            return;
+        }
+
+        if (!choice) {
+            toast.error("Pilih choice dulu");
+            return;
+        }
+
         try {
             setLoading(true);
-            const r = await api.post("/vote/commit", {
-                choice: choice,
-            });
-            setSalt(r.data.salt);
-            toast.success("Commit OK. Simpan salt: " + r.data.salt);
+
+            // Double-check status before trying commit
+            const statusRes = await api.get(`/vote/status?_t=${Date.now()}`);
+            if (statusRes?.data?.ok && statusRes.data.committed) {
+                setHasCommitted(true);
+                toast.error("Sudah commit on-chain");
+                return;
+            }
+
+            // Proceed with commit if not already committed
+            const r = await api.post("/vote/commit", { choice });
+            if (r?.data?.ok) {
+                setSalt(r.data.salt);
+                setHasCommitted(true);
+                toast.success("Commit OK. Simpan salt: " + r.data.salt);
+            } else {
+                toast.error(r?.data?.error || "Commit gagal");
+                if (r?.data?.committed) {
+                    setHasCommitted(true);
+                }
+            }
         } catch (e) {
-            toast.error(e?.response?.data || e.message);
+            const msg = e?.response?.data || e?.message || "Commit gagal";
+            toast.error(msg);
+            if (e?.response?.status === 400) {
+                setHasCommitted(true);
+            }
         } finally {
             setLoading(false);
         }
     };
 
     const reveal = async () => {
+        if (statusLoading)
+            return toast.error("Sedang memeriksa status, tunggu sebentar");
         if (!choice || !salt) return toast.error("Choice dan Salt harus diisi");
+        if (!hasCommitted) return toast.error("Kamu harus commit dulu");
         try {
             setLoading(true);
-            await api.post("/vote/reveal", {
+            const r = await api.post("/vote/reveal", {
                 salt,
                 choice,
             });
-            toast.success("Reveal OK");
+            if (r?.data?.ok) {
+                toast.success("Reveal OK");
+            } else {
+                toast.error(r?.data?.error || "Reveal gagal");
+            }
         } catch (e) {
             toast.error(e?.response?.data || e.message);
         } finally {
@@ -98,6 +186,7 @@ export default function Home() {
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
             <div className="w-full max-w-xl bg-white shadow-md rounded-lg p-6 text-black">
+                {/* Header */}
                 <div className="flex justify-between items-center mb-4">
                     <h1 className="text-2xl font-semibold">Blockchain demo</h1>
                     <div className="text-sm">
@@ -110,8 +199,7 @@ export default function Home() {
                     </div>
                 </div>
 
-                {/* CredID diambil dari token server-side (frontend tidak perlu mengirim) */}
-
+                {/* Choice selector */}
                 <label className="block text-sm font-medium">Choice</label>
                 <select
                     className="mt-1 mb-3 block w-32 rounded border px-3 py-2"
@@ -121,18 +209,36 @@ export default function Home() {
                     <option value="B">B</option>
                 </select>
 
-                {/* Status vote: dihilangkan — server yang menentukan apakah sudah commit */}
+                {/* Status indicator */}
+                <div className="mb-3 text-sm">
+                    {statusLoading ? (
+                        <span className="text-gray-500">
+                            <span className="inline-block mr-2 w-4 h-4 border-2 border-t-transparent border-gray-500 rounded-full animate-spin"></span>
+                            Memeriksa status voting...
+                        </span>
+                    ) : hasCommitted ? (
+                        <span className="text-green-600">
+                            Status: Sudah commit (on-chain)
+                        </span>
+                    ) : (
+                        <span className="text-gray-600">
+                            Status: Belum commit
+                        </span>
+                    )}
+                </div>
+
+                {/* Action buttons */}
                 <div className="flex gap-2 mb-4">
                     <button
                         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-60"
                         onClick={commit}
-                        disabled={loading}>
+                        disabled={loading || hasCommitted || statusLoading}>
                         Commit
                     </button>
                     <button
                         className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-60"
                         onClick={reveal}
-                        disabled={loading || !salt}>
+                        disabled={loading || !salt || statusLoading}>
                         Reveal
                     </button>
                     <button
