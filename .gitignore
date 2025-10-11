@@ -32,3 +32,13 @@ frontend/.env.production
 
 # local secrets / runtime
 .env
+
+# scripts & logs
+*.sh
+*.log
+
+# data
+/data
+
+# temp
+/scripts
