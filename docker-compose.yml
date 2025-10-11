@@ -1,0 +1,75 @@
+version: "3.8"
+services:
+    validator1:
+        build:
+            context: .
+            dockerfile: backend/chain/Dockerfile
+        image: evote-validator1:latest
+        container_name: evote-validator-1
+        volumes:
+            - validator1_data:/root/.cometbft
+            - ./scripts/entrypoint-node.sh:/entrypoint.sh:ro
+        ports:
+            - "26657:26657"
+            - "26656:26656"
+            - "26658:26658"
+        networks:
+            - evote-net
+        entrypoint: ["/bin/sh", "/entrypoint.sh"]
+        environment:
+            - HOME_DIR=/root/.cometbft
+
+    validator2:
+        build:
+            context: .
+            dockerfile: backend/chain/Dockerfile
+        image: evote-validator2:latest
+        container_name: evote-validator-2
+        volumes:
+            - validator2_data:/root/.cometbft
+            - ./scripts/entrypoint-node.sh:/entrypoint.sh:ro
+        ports:
+            - "26667:26657"
+            - "26666:26656"
+            - "26668:26658"
+        networks:
+            - evote-net
+        entrypoint: ["/bin/sh", "/entrypoint.sh"]
+        environment:
+            - HOME_DIR=/root/.cometbft
+
+    backend:
+        build:
+            context: .
+            dockerfile: backend/api/Dockerfile
+        image: evote-backend:latest
+        container_name: evote-backend
+        environment:
+            - COMET_RPC=http://validator1:26657
+        ports:
+            - "8080:8080"
+        networks:
+            - evote-net
+        depends_on:
+            - validator1
+
+    frontend:
+        build:
+            context: ./frontend
+            dockerfile: Dockerfile
+        image: evote-frontend:latest
+        container_name: evote-frontend
+        ports:
+            - "3000:3000"
+        networks:
+            - evote-net
+        depends_on:
+            - backend
+
+volumes:
+    validator1_data:
+    validator2_data:
+
+networks:
+    evote-net:
+        driver: bridge
