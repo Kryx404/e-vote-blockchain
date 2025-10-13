@@ -1,3 +1,6 @@
+# Docker Compose untuk deployment terdistribusi
+# Untuk menjalankan di server yang berbeda, gunakan file ini sebagai template
+
 version: "3.8"
 services:
     validator1:
@@ -7,17 +10,23 @@ services:
         image: evote-validator1:latest
         container_name: evote-validator-1
         volumes:
-            - validator1_data:/root/.cometbft
-            - ./scripts/entrypoint-node.sh:/entrypoint.sh:ro
+            - ./data/node1:/root/.cometbft/config
+            - validator1_data:/root/.cometbft/data
+            - ./scripts/entrypoint-distributed.sh:/entrypoint.sh:ro
         ports:
-            - "26657:26657"
-            - "26656:26656"
-            - "26658:26658"
+            - "26657:26657" # RPC
+            - "26656:26656" # P2P
+            - "26658:26658" # ABCI
         networks:
             - evote-net
         entrypoint: ["/bin/sh", "/entrypoint.sh"]
         environment:
             - HOME_DIR=/root/.cometbft
+            - MONIKER=validator1
+            - PEER_ID=fddb7c312b2d4f1acd60acfc5b2605637ecc226c
+            - PEER_ADDRESS=validator2:26656
+            - EXTERNAL_ADDRESS=validator1:26656
+        restart: unless-stopped
 
     validator2:
         build:
@@ -26,17 +35,23 @@ services:
         image: evote-validator2:latest
         container_name: evote-validator-2
         volumes:
-            - validator2_data:/root/.cometbft
-            - ./scripts/entrypoint-node.sh:/entrypoint.sh:ro
+            - ./data/node2:/root/.cometbft/config
+            - validator2_data:/root/.cometbft/data
+            - ./scripts/entrypoint-distributed.sh:/entrypoint.sh:ro
         ports:
-            - "26667:26657"
-            - "26666:26656"
-            - "26668:26658"
+            - "26667:26657" # RPC
+            - "26666:26656" # P2P
+            - "26668:26658" # ABCI
         networks:
             - evote-net
         entrypoint: ["/bin/sh", "/entrypoint.sh"]
         environment:
             - HOME_DIR=/root/.cometbft
+            - MONIKER=validator2
+            - PEER_ID=a8f961eb6a9de0d4d23864bf40c9e15073dcde99
+            - PEER_ADDRESS=validator1:26656
+            - EXTERNAL_ADDRESS=validator2:26656
+        restart: unless-stopped
 
     backend:
         build:
@@ -52,6 +67,7 @@ services:
             - evote-net
         depends_on:
             - validator1
+        restart: unless-stopped
 
     frontend:
         build:
@@ -65,6 +81,7 @@ services:
             - evote-net
         depends_on:
             - backend
+        restart: unless-stopped
 
 volumes:
     validator1_data:
@@ -73,3 +90,6 @@ volumes:
 networks:
     evote-net:
         driver: bridge
+        ipam:
+            config:
+                - subnet: 172.20.0.0/16
