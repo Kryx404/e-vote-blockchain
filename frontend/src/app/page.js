@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import Swal from "sweetalert2";
 import api from "../lib/api";
 const base = "/api/v1";
 
@@ -103,6 +104,39 @@ export default function Home() {
             return;
         }
 
+        // SweetAlert confirmation popup
+        const result = await Swal.fire({
+            title: "Konfirmasi Pilihan",
+            html: `
+                <div style="text-align: center; padding: 20px;">
+                    <div style="font-size: 18px; margin-bottom: 15px;">
+                        Apakah Anda yakin memilih:
+                    </div>
+                    <div style="font-size: 32px; font-weight: bold; color: #3085d6; margin-bottom: 15px;">
+                        ${choice}
+                    </div>
+                    <div style="font-size: 14px; color: #666;">
+                        Setelah konfirmasi, sistem akan otomatis melakukan commit dan reveal
+                    </div>
+                </div>
+            `,
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonColor: "#3085d6",
+            cancelButtonColor: "#d33",
+            confirmButtonText: "Ya, saya yakin!",
+            cancelButtonText: "Batal",
+            reverseButtons: true,
+            customClass: {
+                popup: "swal-wide",
+            },
+        });
+
+        // Jika user membatalkan, keluar dari fungsi
+        if (!result.isConfirmed) {
+            return;
+        }
+
         try {
             setLoading(true);
 
@@ -120,6 +154,32 @@ export default function Home() {
                 setSalt(r.data.salt);
                 setHasCommitted(true);
                 toast.success("Commit OK. Simpan salt: " + r.data.salt);
+
+                // Show success popup dan auto reveal
+                Swal.fire({
+                    title: "Commit Berhasil!",
+                    html: `
+                        <div style="text-align: center;">
+                            <div style="margin-bottom: 15px;">✅ Vote Anda berhasil di-commit</div>
+                            <div style="margin-bottom: 15px;">🔐 Salt: <code>${r.data.salt}</code></div>
+                            <div style="color: #666;">Sedang melakukan auto reveal...</div>
+                        </div>
+                    `,
+                    icon: "success",
+                    timer: 3000,
+                    timerProgressBar: true,
+                    showConfirmButton: false,
+                });
+
+                // Auto reveal setelah commit berhasil
+                setTimeout(async () => {
+                    try {
+                        await autoReveal(r.data.salt, choice);
+                    } catch (error) {
+                        console.error("Auto reveal failed:", error);
+                        toast.error("Auto reveal gagal, silakan reveal manual");
+                    }
+                }, 1500); // Delay 1.5 detik untuk memberikan waktu commit selesai
             } else {
                 toast.error(r?.data?.error || "Commit gagal");
                 if (r?.data?.committed) {
@@ -134,6 +194,45 @@ export default function Home() {
             }
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Fungsi auto reveal
+    const autoReveal = async (saltValue, choiceValue) => {
+        try {
+            const r = await api.post("/vote/reveal", {
+                salt: saltValue,
+                choice: choiceValue,
+            });
+
+            if (r?.data?.ok) {
+                // Show final success popup
+                Swal.fire({
+                    title: "Vote Selesai!",
+                    html: `
+                        <div style="text-align: center;">
+                            <div style="font-size: 24px; margin-bottom: 15px;">🎉</div>
+                            <div style="margin-bottom: 10px;">✅ Commit berhasil</div>
+                            <div style="margin-bottom: 15px;">✅ Reveal berhasil</div>
+                            <div style="color: #666; font-size: 14px;">
+                                Vote Anda sudah tercatat di blockchain!
+                            </div>
+                        </div>
+                    `,
+                    icon: "success",
+                    timer: 4000,
+                    timerProgressBar: true,
+                    showConfirmButton: false,
+                });
+                toast.success("Auto Reveal berhasil! Vote selesai 🎉");
+            } else {
+                toast.error(r?.data?.error || "Auto Reveal gagal");
+            }
+        } catch (e) {
+            toast.error(
+                "Auto Reveal error: " + (e?.response?.data || e.message),
+            );
+            throw e; // Re-throw untuk handling di commit()
         }
     };
 
@@ -235,12 +334,7 @@ export default function Home() {
                         disabled={loading || hasCommitted || statusLoading}>
                         Commit
                     </button>
-                    <button
-                        className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-60"
-                        onClick={reveal}
-                        disabled={loading || !salt || statusLoading}>
-                        Reveal
-                    </button>
+                   
                     <button
                         className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800 disabled:opacity-60"
                         onClick={getTally}
