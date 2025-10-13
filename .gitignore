@@ -15,6 +15,7 @@ backend/**/vendor/
 frontend/node_modules/
 frontend/.next/
 frontend/build/
+frontend/package-lock.json
 # next/turbopack caches (dev)
 frontend/.turbo/
 # env
@@ -23,12 +24,20 @@ frontend/.env.local
 frontend/.env.development
 frontend/.env.production
 
-# OS
+# OS files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
 # editor
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # local secrets / runtime
 .env
@@ -36,9 +45,39 @@ frontend/.env.production
 # scripts & logs
 *.sh
 *.log
+.log
+*.tmp
+*.temp
 
-# data
+# CometBFT temporary files
+write-file-atomic-*
+
+# Docker
+.dockerignore
+
+# Git
+.gitignore
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Compiled binaries
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test coverage
+*.out
+coverage/
+
+# Blockchain data
 /data
+
+# Documentation
+/docs
 
 # temp
 /scripts
