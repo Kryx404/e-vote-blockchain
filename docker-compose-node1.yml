@@ -1,0 +1,64 @@
+# Docker Compose untuk Node 1 (Server 1)
+# Jalankan di server pertama: docker-compose -f docker-compose-node1.yml up -d
+
+version: "3.8"
+services:
+    validator1:
+        build:
+            context: .
+            dockerfile: backend/chain/Dockerfile
+        image: evote-validator1:latest
+        container_name: evote-validator-1
+        volumes:
+            - ./data/node1:/root/.cometbft/config
+            - validator1_data:/root/.cometbft/data
+            - ./scripts/entrypoint-node.sh:/entrypoint.sh:ro
+        ports:
+            - "26657:26657" # RPC
+            - "26656:26656" # P2P
+            - "26658:26658" # ABCI
+        networks:
+            - evote-net
+        entrypoint: ["/bin/sh", "/entrypoint.sh"]
+        environment:
+            - HOME_DIR=/root/.cometbft
+            - MONIKER=validator1
+            - EXTERNAL_IP=${EXTERNAL_IP:-localhost}
+        restart: unless-stopped
+
+    backend:
+        build:
+            context: .
+            dockerfile: backend/api/Dockerfile
+        image: evote-backend:latest
+        container_name: evote-backend
+        environment:
+            - COMET_RPC=http://validator1:26657
+        ports:
+            - "8080:8080"
+        networks:
+            - evote-net
+        depends_on:
+            - validator1
+        restart: unless-stopped
+
+    frontend:
+        build:
+            context: ./frontend
+            dockerfile: Dockerfile
+        image: evote-frontend:latest
+        container_name: evote-frontend
+        ports:
+            - "3000:3000"
+        networks:
+            - evote-net
+        depends_on:
+            - backend
+        restart: unless-stopped
+
+volumes:
+    validator1_data:
+
+networks:
+    evote-net:
+        driver: bridge
