@@ -76,6 +76,16 @@ coverage/
 # Blockchain data
 /data
 
+# Blockchain backups & temp nodes
+data/backup_genesis_*/
+data/*/write-file-atomic-*
+data/*/data/
+temp_validators/
+temp_genesis.json
+
+# Frontend hosting cache
+frontend/.vercel/
+
 # Documentation
 /docs
 
