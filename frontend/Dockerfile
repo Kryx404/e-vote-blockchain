@@ -2,6 +2,9 @@
 FROM node:18-alpine AS builder
 WORKDIR /app
 
+# Tambah gcompat agar binary glibc (mis. swc) dapat berjalan di Alpine
+RUN apk add --no-cache gcompat
+
 # Copy package files untuk memanfaatkan Docker layer caching
 COPY package.json ./
 # Copy package-lock.json jika ada, kalau tidak ada skip
