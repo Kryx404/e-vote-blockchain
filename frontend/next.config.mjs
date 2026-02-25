@@ -6,6 +6,7 @@ const nextConfig = {
             {
                 source: "/api/v1/:path*",
                 destination: "http://evote-backend:8080/api/v1/:path*",
+                // destination: "http://localhost:8080/api/v1/:path*",
             },
         ];
     },
