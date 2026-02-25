@@ -10,8 +10,8 @@ services:
         image: evote-validator1:latest
         container_name: evote-validator-1
         volumes:
-            - ./data/node1:/root/.cometbft/config
-            - validator1_data:/root/.cometbft/data
+            - ./data/node1/config:/root/.cometbft/config
+            - ./data/node1/data:/root/.cometbft/data
             - ./scripts/entrypoint-distributed.sh:/entrypoint.sh:ro
         ports:
             - "26657:26657" # RPC
@@ -23,8 +23,6 @@ services:
         environment:
             - HOME_DIR=/root/.cometbft
             - MONIKER=validator1
-            - PEER_ID=fddb7c312b2d4f1acd60acfc5b2605637ecc226c
-            - PEER_ADDRESS=validator2:26656
             - EXTERNAL_ADDRESS=validator1:26656
         restart: unless-stopped
 
@@ -35,8 +33,8 @@ services:
         image: evote-validator2:latest
         container_name: evote-validator-2
         volumes:
-            - ./data/node2:/root/.cometbft/config
-            - validator2_data:/root/.cometbft/data
+            - ./data/node2/config:/root/.cometbft/config
+            - ./data/node2/data:/root/.cometbft/data
             - ./scripts/entrypoint-distributed.sh:/entrypoint.sh:ro
         ports:
             - "26667:26657" # RPC
@@ -48,8 +46,6 @@ services:
         environment:
             - HOME_DIR=/root/.cometbft
             - MONIKER=validator2
-            - PEER_ID=a8f961eb6a9de0d4d23864bf40c9e15073dcde99
-            - PEER_ADDRESS=validator1:26656
             - EXTERNAL_ADDRESS=validator2:26656
         restart: unless-stopped
 
@@ -81,6 +77,52 @@ services:
             - evote-net
         depends_on:
             - backend
+        restart: unless-stopped
+
+    validator3:
+        build:
+            context: .
+            dockerfile: backend/chain/Dockerfile
+        image: evote-validator3:latest
+        container_name: evote-validator3
+        volumes:
+            - ./data/validator3/config:/root/.cometbft/config
+            - ./data/validator3/data:/root/.cometbft/data
+            - ./scripts/entrypoint-distributed.sh:/entrypoint.sh:ro
+        ports:
+            - "26687:26657"
+            - "26686:26656"
+            - "26688:26658"
+        networks:
+            - evote-net
+        entrypoint: ["/bin/sh", "/entrypoint.sh"]
+        environment:
+            - HOME_DIR=/root/.cometbft
+            - MONIKER=validator3
+            - EXTERNAL_ADDRESS=validator3:26656
+        restart: unless-stopped
+
+    validator4:
+        build:
+            context: .
+            dockerfile: backend/chain/Dockerfile
+        image: evote-validator4:latest
+        container_name: evote-validator4
+        volumes:
+            - ./data/validator4/config:/root/.cometbft/config
+            - ./data/validator4/data:/root/.cometbft/data
+            - ./scripts/entrypoint-distributed.sh:/entrypoint.sh:ro
+        ports:
+            - "26697:26657"
+            - "26696:26656"
+            - "26698:26658"
+        networks:
+            - evote-net
+        entrypoint: ["/bin/sh", "/entrypoint.sh"]
+        environment:
+            - HOME_DIR=/root/.cometbft
+            - MONIKER=validator4
+            - EXTERNAL_ADDRESS=validator4:26656
         restart: unless-stopped
 
 volumes:
