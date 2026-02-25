@@ -51,6 +51,39 @@ func jsonRPC(method string, params any) (map[string]any, error) {
     return out, nil
 }
 
+// Query ABCI dengan HTTP GET (format yang benar untuk CometBFT)
+func abciQuery(path string, data []byte) (map[string]any, error) {
+    // Encode data ke hex (CometBFT expects hex in URL params)
+    hexData := ""
+    if len(data) > 0 {
+        hexData = hex.EncodeToString(data)
+    }
+    
+    // Build URL dengan proper escaping
+    queryURL := fmt.Sprintf("%s/abci_query?path=%s", cometRPC, url.QueryEscape(path))
+    if hexData != "" {
+        queryURL += fmt.Sprintf("&data=0x%s", hexData)
+    }
+    
+    log.Printf("🔍 ABCI Query => Path: %s | Data: %s", path, hexData)
+    
+    resp, err := http.Get(queryURL)
+    if err != nil {
+        log.Printf("❌ ABCI Query Error: %v", err)
+        return nil, err
+    }
+    defer resp.Body.Close()
+    
+    var out map[string]any
+    if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+        log.Printf("❌ ABCI Query Decode Error: %v", err)
+        return nil, err
+    }
+    
+    log.Printf("✅ ABCI Query Success: %v", out)
+    return out, nil
+}
+
 // Broadcast
 func broadcast(tx any) (map[string]any, error) {
     raw, _ := json.Marshal(tx)
@@ -89,17 +122,13 @@ func commit(w http.ResponseWriter, r *http.Request) {
     credID := email
 
     // VALIDASI ON-CHAIN: cek apakah credID sudah commit
-    // kirim "data" sebagai base64(key) karena node/app mengharapkan base64 encoding
-    b64Key := base64.StdEncoding.EncodeToString([]byte(credID))
-    // lakukan abci_query ke path "/commit" dengan data = base64(credID)
-    qres, err := jsonRPC("abci_query", map[string]any{"path": "/commit", "data": b64Key})
+    // Query menggunakan HTTP GET dengan hex encoding
+    qres, err := abciQuery("/commit", []byte(credID))
     if err != nil {
+        log.Printf("❌ Query chain failed for %s: %v", credID, err)
         http.Error(w, "failed to query chain: "+err.Error(), http.StatusInternalServerError)
         return
     }
-
-    // debug log untuk melihat response dari node (bisa dihapus setelah fix)
-    log.Printf("abci_query result for %s: %v\n", url.PathEscape(credID), qres)
 
     // periksa response.value (base64) — jika tidak kosong berarti sudah ada commit
     if rr, ok := qres["result"].(map[string]any); ok {
@@ -115,9 +144,17 @@ func commit(w http.ResponseWriter, r *http.Request) {
     salt := "demo_salt"
     com := shaHex(fmt.Sprintf("%s|%s|%s", salt, in.Choice, credID))
     tx := map[string]string{"kind": "commit", "cred_id": credID, "commitment": com}
+    
+    log.Printf("🗳️  COMMIT VOTE => User: %s | Choice: %s | Commitment: %s", credID, in.Choice, com)
+    
     res, err := broadcast(tx)
-    if err != nil { http.Error(w, err.Error(), 500); return }
-
+    if err != nil {
+        log.Printf("❌ Broadcast failed for %s: %v", credID, err)
+        http.Error(w, err.Error(), 500)
+        return
+    }
+    
+    log.Printf("✅ COMMIT SUCCESS => User: %s | Response: %v", credID, res)
     json.NewEncoder(w).Encode(map[string]any{"ok": true, "salt": salt, "rpc": res})
 }
 
@@ -148,8 +185,17 @@ func reveal(w http.ResponseWriter, r *http.Request) {
     credID := email
 
     tx := map[string]string{"kind": "reveal", "cred_id": credID, "salt": in.Salt, "choice": in.Choice}
+    
+    log.Printf("🔓 REVEAL VOTE => User: %s | Salt: %s | Choice: %s", credID, in.Salt, in.Choice)
+    
     res, err := broadcast(tx)
-    if err != nil { http.Error(w, err.Error(), 500); return }
+    if err != nil {
+        log.Printf("❌ Reveal broadcast failed for %s: %v", credID, err)
+        http.Error(w, err.Error(), 500)
+        return
+    }
+    
+    log.Printf("✅ REVEAL SUCCESS => User: %s | Response: %v", credID, res)
     json.NewEncoder(w).Encode(map[string]any{"ok": true, "rpc": res})
 }
 
@@ -231,14 +277,13 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    // query on-chain (pakai same encoding seperti commit handler)
-    b64Key := base64.StdEncoding.EncodeToString([]byte(email))
-    qres, err := jsonRPC("abci_query", map[string]any{"path": "/commit", "data": b64Key})
+    // query on-chain dengan HTTP GET
+    qres, err := abciQuery("/commit", []byte(email))
     if err != nil {
+        log.Printf("❌ Status query failed for %s: %v", email, err)
         http.Error(w, "failed to query chain: "+err.Error(), http.StatusInternalServerError)
         return
     }
-    log.Printf("abci_query status for %s: %v\n", url.PathEscape(email), qres)
 
     committed := false
     if rr, ok := qres["result"].(map[string]any); ok {
