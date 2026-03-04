@@ -595,11 +595,16 @@ export default function Home() {
                                 Commit & reveal terbaru
                             </div>
                         </div>
-                        <span className="text-xs text-slate-400">
-                            Urut waktu naik
-                        </span>
+                        <div className="flex items-center gap-3 text-xs text-slate-400">
+                            <span>Urut waktu naik</span>
+                            <Link
+                                href="/transactions"
+                                className="px-3 py-1.5 rounded-lg border border-white/15 text-slate-50 hover:border-white/35 transition">
+                                Lainnya
+                            </Link>
+                        </div>
                     </div>
-                    <DotList items={history} />
+                    <DotList items={history.slice(0, 5)} />
                 </section>
             </main>
         </div>
