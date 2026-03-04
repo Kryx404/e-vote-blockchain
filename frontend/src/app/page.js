@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Navbar from "./components/Navbar";
 
 const COLORS = {
     accent: "#2563eb",
@@ -307,26 +308,7 @@ export default function Home() {
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,_rgba(255,255,255,0.04)_1px,_transparent_0)] bg-[length:32px_32px]" />
             </div>
 
-            <header className="sticky top-0 z-20 border-b border-white/10 bg-slate-950/70 backdrop-blur">
-                <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-                    <div className="flex items-center gap-2 font-semibold text-lg">
-                        <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                        <span>e-Vote Live</span>
-                    </div>
-                    <nav className="flex items-center gap-3 text-sm">
-                        <Link
-                            href="/vote"
-                            className="px-3 py-1.5 rounded-lg border border-white/10 hover:border-white/30 transition">
-                            Vote Dashboard
-                        </Link>
-                        <Link
-                            href="/login"
-                            className="px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition">
-                            Login
-                        </Link>
-                    </nav>
-                </div>
-            </header>
+            <Navbar sticky />
 
             <main className="relative z-10 max-w-6xl mx-auto px-6 py-12 flex flex-col gap-10">
                 <section className="grid gap-8 lg:grid-cols-[1.35fr_1fr] items-start">

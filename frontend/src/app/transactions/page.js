@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
+import Navbar from "../components/Navbar";
 
 const PAGE_SIZE = 10;
 
@@ -90,19 +90,7 @@ export default function TransactionsPage() {
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,_rgba(255,255,255,0.04)_1px,_transparent_0)] bg-[length:32px_32px]" />
             </div>
 
-            <header className="relative z-10 border-b border-white/10 bg-slate-950/70 backdrop-blur">
-                <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-                    <div className="flex items-center gap-2 font-semibold text-lg">
-                        <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                        <span>Riwayat Transaksi</span>
-                    </div>
-                    <Link
-                        href="/"
-                        className="px-3 py-1.5 rounded-lg border border-white/15 text-slate-50 hover:border-white/35 transition">
-                        Kembali ke insight
-                    </Link>
-                </div>
-            </header>
+            <Navbar />
 
             <main className="relative z-10 max-w-6xl mx-auto px-6 py-10 flex flex-col gap-8">
                 <div className="flex flex-col gap-3">
