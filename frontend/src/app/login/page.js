@@ -1,15 +1,25 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import toast from "react-hot-toast";
+import { Sun, Moon, Eye, EyeOff, Vote, Loader2 } from "lucide-react";
 import api from "../../lib/api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Login() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [showPwd, setShowPwd] = useState(false);
+    const [mounted, setMounted] = useState(false);
+    const { theme, setTheme } = useTheme();
     const router = useRouter();
+
+    useEffect(() => setMounted(true), []);
 
     const submit = async (e) => {
         e?.preventDefault();
@@ -33,107 +43,135 @@ export default function Login() {
         }
     };
 
-    const fillDemo = (n = 1) => {
-        setEmail(`user${n}@gmail.com`);
+    const fillDemo = () => {
+        setEmail("user1@gmail.com");
         setPassword("123");
     };
 
+    const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
+
     return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-            <form
-                onSubmit={submit}
-                className="w-full max-w-md bg-white shadow-lg rounded-lg p-6 space-y-4">
-                <h2 className="text-2xl font-semibold text-gray-800">
-                    Sign in
-                </h2>
-                <p className="text-sm text-gray-500">
-                    Masuk dengan email dan password.
-                </p>
+        <div className="relative min-h-screen flex items-center justify-center p-6 transition-colors duration-300 bg-gradient-to-br from-slate-100 via-indigo-50 to-purple-50 dark:from-slate-950 dark:via-indigo-950 dark:to-purple-950">
+            {/* Decorative blobs */}
+            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-indigo-400/20 dark:bg-indigo-600/15 blur-3xl animate-pulse" />
+                <div className="absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-violet-400/20 dark:bg-violet-600/15 blur-3xl animate-pulse [animation-delay:2s]" />
+            </div>
 
-                <div>
-                    <label
-                        htmlFor="email"
-                        className="block text-sm font-medium text-gray-700">
-                        Email
-                    </label>
-                    <input
-                        id="email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="email@email.com"
-                        className={`mt-1 block w-full rounded border-gray-200 shadow-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 ${
-                            email ? "text-black" : "text-gray-500"
-                        }`}
-                        required
-                    />
-                </div>
+            {/* Theme toggle */}
+            <div className="absolute top-4 right-4">
+                {mounted && (
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={toggleTheme}
+                        className="rounded-full border-border/50 bg-background/70 backdrop-blur-sm shadow-sm hover:bg-accent transition-all"
+                        aria-label="Toggle theme"
+                    >
+                        {theme === "dark" ? (
+                            <Sun className="h-4 w-4 text-yellow-500" />
+                        ) : (
+                            <Moon className="h-4 w-4 text-indigo-600" />
+                        )}
+                    </Button>
+                )}
+            </div>
 
-                <div>
-                    <label
-                        htmlFor="password"
-                        className="block text-sm font-medium text-gray-700">
-                        Password
-                    </label>
-                    <div className="relative mt-1">
-                        <input
-                            id="password"
-                            type={showPwd ? "text" : "password"}
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="••••••••"
-                            className={`mt-1 block w-full rounded border-gray-200 shadow-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 ${
-                            password ? "text-black" : "text-gray-500"
-                        }`}
-                            required
-                        />
-                        <button
-                            type="button"
-                            onClick={() => setShowPwd((s) => !s)}
-                            className="absolute inset-y-0 right-0 px-3 text-sm text-gray-500"
-                            aria-label={
-                                showPwd ? "Hide password" : "Show password"
-                            }>
-                            {showPwd ? "Hide" : "Show"}
-                        </button>
+            {/* Login card */}
+            <Card className="relative w-full max-w-md border border-border/50 bg-background/80 backdrop-blur-xl shadow-2xl animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
+                <CardHeader className="space-y-3 pb-4">
+                    {/* Logo */}
+                    <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary shadow-lg shadow-primary/25 mb-2">
+                        <Vote className="h-6 w-6 text-primary-foreground" />
                     </div>
-                </div>
+                    <CardTitle className="text-2xl font-bold tracking-tight">Selamat datang</CardTitle>
+                    <CardDescription>
+                        Masuk ke akun <span className="font-medium text-primary">e-Vote</span> Anda
+                    </CardDescription>
+                </CardHeader>
 
-                <div className="flex items-center justify-between">
-                    <div className="text-sm">
-                        <button
-                            type="button"
-                            onClick={() => fillDemo(1)}
-                            className="text-indigo-600 hover:underline">
-                            Fill demo
-                        </button>
-                    </div>
-                    
-                </div>
+                <CardContent>
+                    <form onSubmit={submit} className="space-y-5">
+                        {/* Email */}
+                        <div className="space-y-1.5">
+                            <Label htmlFor="email">Email</Label>
+                            <Input
+                                id="email"
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="email@contoh.com"
+                                autoComplete="email"
+                                required
+                                className="h-10"
+                            />
+                        </div>
 
-                <div className="flex gap-2">
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="flex-1 bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 disabled:opacity-60">
-                        {loading ? "Loading..." : "Login"}
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setEmail("");
-                            setPassword("");
-                        }}
-                        className="bg-gray-100 text-gray-500 px-4 py-2 rounded">
-                        Clear
-                    </button>
-                </div>
+                        {/* Password */}
+                        <div className="space-y-1.5">
+                            <Label htmlFor="password">Password</Label>
+                            <div className="relative">
+                                <Input
+                                    id="password"
+                                    type={showPwd ? "text" : "password"}
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="••••••••"
+                                    autoComplete="current-password"
+                                    required
+                                    className="h-10 pr-10"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPwd((s) => !s)}
+                                    className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground transition-colors"
+                                    aria-label={showPwd ? "Sembunyikan password" : "Tampilkan password"}
+                                >
+                                    {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                            </div>
+                        </div>
 
-                {/* <p className="text-xs text-gray-400 text-center">
-                    Dengan masuk kamu setuju bahwa ini demo saja — jangan
-                    gunakan data sensitif.
-                </p> */}
-            </form>
+                        {/* Submit */}
+                        <Button type="submit" disabled={loading} className="w-full h-10 font-semibold">
+                            {loading ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Memproses...
+                                </>
+                            ) : (
+                                "Masuk"
+                            )}
+                        </Button>
+
+                        {/* Divider + secondary actions */}
+                        <div className="flex items-center gap-3">
+                            <div className="flex-1 h-px bg-border" />
+                            <span className="text-xs text-muted-foreground">atau</span>
+                            <div className="flex-1 h-px bg-border" />
+                        </div>
+
+                        <div className="flex gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="flex-1 h-9 text-sm"
+                                onClick={fillDemo}
+                            >
+                                Isi Demo
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                className="flex-1 h-9 text-sm"
+                                onClick={() => { setEmail(""); setPassword(""); }}
+                            >
+                                Bersihkan
+                            </Button>
+                        </div>
+                    </form>
+                </CardContent>
+            </Card>
         </div>
     );
 }
