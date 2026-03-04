@@ -91,3 +91,7 @@ frontend/.vercel/
 
 # temp
 /scripts
+
+#skills
+skills/
+skills-lock.json
