@@ -121,7 +121,7 @@ export default function SiteNavbar({ sticky = true, title = "ChainVote" }) {
                             <button
                                 type="button"
                                 onClick={handleLogout}
-                                className="hidden md:inline-flex px-3 py-1.5 rounded-lg border border-white/20 text-slate-50 hover:border-white/35 transition font-semibold">
+                                className="hidden md:inline-flex px-3 py-1.5 rounded-lg bg-red-600 border border-white/20 text-slate-50 hover:border-white/35 transition font-semibold">
                                 Logout
                             </button>
                         ) : (
