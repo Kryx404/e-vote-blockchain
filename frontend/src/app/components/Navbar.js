@@ -15,7 +15,7 @@ function linkClass(tone) {
     return "px-3 py-1.5 rounded-lg border border-white/10 hover:border-white/30 transition";
 }
 
-export default function SiteNavbar({ sticky = false, title = "e-Vote Live" }) {
+export default function SiteNavbar({ sticky = false, title = "ChainVote" }) {
     const headerClass = sticky
         ? "sticky top-0 z-20 border-b border-white/10 bg-slate-950/70 backdrop-blur"
         : "relative z-10 border-b border-white/10 bg-slate-950/70 backdrop-blur";
