@@ -177,7 +177,7 @@ export default function CandidatesPage() {
                                                 Pilih kandidat ini
                                             </Link>
                                             <Link
-                                                href="/transactions"
+                                                href="/history"
                                                 className="flex-1 text-center px-4 py-2.5 rounded-lg border border-white/15 text-slate-50 hover:border-white/35 transition">
                                                 Lihat aktivitas
                                             </Link>
