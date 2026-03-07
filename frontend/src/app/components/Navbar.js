@@ -1,18 +1,28 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { clearAuth, readAuth } from "@/lib/auth";
 
 const navLinks = [
     { href: "/candidates", label: "Kandidat", tone: "ghost" },
-    { href: "/vote", label: "Vote Dashboard", tone: "ghost" },
+    {
+        href: "/vote",
+        label: "Vote Dashboard",
+        tone: "ghost",
+        requiresAuth: true,
+    },
     { href: "/history", label: "Histori", tone: "ghost" },
 ];
 
 export default function SiteNavbar({ sticky = true, title = "ChainVote" }) {
     const pathname = usePathname();
+    const router = useRouter();
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [auth, setAuth] = useState({ token: null, email: null });
+    const [hydrated, setHydrated] = useState(false);
+    const isAuthed = Boolean(auth.token);
 
     useEffect(() => {
         const onScroll = () => setIsScrolled(window.scrollY > 12);
@@ -25,6 +35,14 @@ export default function SiteNavbar({ sticky = true, title = "ChainVote" }) {
         setIsMenuOpen(false);
     }, [pathname]);
 
+    useEffect(() => {
+        const syncAuth = () => setAuth(readAuth());
+        syncAuth();
+        setHydrated(true);
+        window.addEventListener("storage", syncAuth);
+        return () => window.removeEventListener("storage", syncAuth);
+    }, []);
+
     const isActive = (href) => {
         if (href === "/") return pathname === "/";
         return pathname.startsWith(href);
@@ -35,6 +53,17 @@ export default function SiteNavbar({ sticky = true, title = "ChainVote" }) {
     } border-b border-white/10 bg-slate-950/80 backdrop-blur transition-all duration-300 ease-out ${
         isScrolled ? "py-1.5 shadow-lg shadow-slate-900/30" : "py-3"
     }`;
+
+    const visibleLinks = navLinks.filter(
+        (link) => !link.requiresAuth || isAuthed,
+    );
+
+    const handleLogout = () => {
+        clearAuth();
+        setAuth(readAuth());
+        setIsMenuOpen(false);
+        router.push("/");
+    };
 
     return (
         <>
@@ -59,7 +88,7 @@ export default function SiteNavbar({ sticky = true, title = "ChainVote" }) {
                                     ? "justify-end gap-2"
                                     : "justify-center gap-3"
                             }`}>
-                            {navLinks.map((link) => {
+                            {visibleLinks.map((link) => {
                                 const active = isActive(link.href);
                                 return (
                                     <Link
@@ -88,11 +117,20 @@ export default function SiteNavbar({ sticky = true, title = "ChainVote" }) {
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <Link
-                            href="/login"
-                            className="hidden md:inline-flex px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition font-semibold shadow-sm shadow-blue-900/25">
-                            Login
-                        </Link>
+                        {isAuthed ? (
+                            <button
+                                type="button"
+                                onClick={handleLogout}
+                                className="hidden md:inline-flex px-3 py-1.5 rounded-lg border border-white/20 text-slate-50 hover:border-white/35 transition font-semibold">
+                                Logout
+                            </button>
+                        ) : (
+                            <Link
+                                href="/login"
+                                className="hidden md:inline-flex px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition font-semibold shadow-sm shadow-blue-900/25">
+                                Login
+                            </Link>
+                        )}
                         <button
                             type="button"
                             aria-label="Toggle menu"
@@ -124,7 +162,7 @@ export default function SiteNavbar({ sticky = true, title = "ChainVote" }) {
                 {isMenuOpen && (
                     <div className="md:hidden border-t border-white/10 bg-slate-950/95 backdrop-blur px-6 pb-4 pt-2 shadow-lg shadow-slate-900/30 transition-all duration-300">
                         <div className="flex flex-col gap-2">
-                            {navLinks.map((link) => {
+                            {visibleLinks.map((link) => {
                                 const active = isActive(link.href);
                                 return (
                                     <Link
@@ -146,11 +184,20 @@ export default function SiteNavbar({ sticky = true, title = "ChainVote" }) {
                                     </Link>
                                 );
                             })}
-                            <Link
-                                href="/login"
-                                className="mt-1 inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold bg-blue-600 text-white hover:bg-blue-500 transition shadow-sm shadow-blue-900/25">
-                                Login
-                            </Link>
+                            {isAuthed ? (
+                                <button
+                                    type="button"
+                                    onClick={handleLogout}
+                                    className="mt-1 inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold border border-white/20 text-slate-50 hover:border-white/35 transition">
+                                    Logout
+                                </button>
+                            ) : (
+                                <Link
+                                    href="/login"
+                                    className="mt-1 inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold bg-blue-600 text-white hover:bg-blue-500 transition shadow-sm shadow-blue-900/25">
+                                    Login
+                                </Link>
+                            )}
                         </div>
                     </div>
                 )}
