@@ -2,6 +2,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Navbar from "./components/Navbar";
+import ParallaxGlow from "./components/ParallaxGlow";
+import ScrollReveal from "./components/ScrollReveal";
 
 const COLORS = {
     accent: "#2563eb",
@@ -311,226 +313,245 @@ export default function Home() {
             <Navbar sticky />
 
             <main className="relative z-10 max-w-6xl mx-auto px-6 py-12 flex flex-col gap-10">
-                <section className="grid gap-8 lg:grid-cols-[1.35fr_1fr] items-start">
-                    <div className="p-7 rounded-3xl bg-white/5 border border-white/10 shadow-2xl shadow-blue-900/20">
-                        <p className="text-xs uppercase tracking-[0.35em] text-blue-200/70">
-                            Live preview
-                        </p>
-                        <h1 className="mt-3 text-3xl md:text-4xl font-semibold leading-tight">
-                            Insight realtime sebelum login
-                        </h1>
-                        <p className="mt-3 text-slate-200/80 max-w-2xl">
-                            Perlihatkan transparansi: pengguna publik dapat
-                            melihat performa dan distribusi suara secara
-                            langsung sebelum masuk. Saat data riil siap, tinggal
-                            hubungkan ke endpoint backend atau WebSocket.
-                        </p>
-                        <div className="flex flex-wrap items-center gap-3 mt-6">
-                            <Link
-                                href="/login"
-                                className="px-4 py-2.5 rounded-xl bg-blue-600 text-white font-semibold shadow-lg shadow-blue-900/40 hover:bg-blue-500 transition">
-                                Login untuk berpartisipasi
-                            </Link>
-                            <Link
-                                href="/vote"
-                                className="px-4 py-2.5 rounded-xl border border-white/15 text-slate-50 hover:border-white/35 transition">
-                                Buka dashboard vote
-                            </Link>
-                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-400/10 text-emerald-200 text-xs border border-emerald-300/30">
-                                <span className="h-2 w-2 rounded-full bg-emerald-300 animate-pulse" />
-                                Streaming mock · 1.4s
+                <section className="relative overflow-hidden grid gap-8 lg:grid-cols-[1.35fr_1fr] items-start rounded-3xl border border-white/10 bg-white/5 shadow-2xl shadow-blue-900/20">
+                    <ParallaxGlow />
+                    <ScrollReveal>
+                        <div className="relative p-7">
+                            <p className="text-xs uppercase tracking-[0.35em] text-blue-200/70">
+                                Live preview
+                            </p>
+                            <h1 className="mt-3 text-3xl md:text-4xl font-semibold leading-tight">
+                                Insight realtime sebelum login
+                            </h1>
+                            <p className="mt-3 text-slate-200/80 max-w-2xl">
+                                Perlihatkan transparansi: pengguna publik dapat
+                                melihat performa dan distribusi suara secara
+                                langsung sebelum masuk. Saat data riil siap,
+                                tinggal hubungkan ke endpoint backend atau
+                                WebSocket.
+                            </p>
+                            <div className="flex flex-wrap items-center gap-3 mt-6">
+                                <Link
+                                    href="/login"
+                                    className="px-4 py-2.5 rounded-xl bg-blue-600 text-white font-semibold shadow-lg shadow-blue-900/40 hover:bg-blue-500 transition">
+                                    Login untuk berpartisipasi
+                                </Link>
+                                <Link
+                                    href="/vote"
+                                    className="px-4 py-2.5 rounded-xl border border-white/15 text-slate-50 hover:border-white/35 transition">
+                                    Buka dashboard vote
+                                </Link>
+                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-400/10 text-emerald-200 text-xs border border-emerald-300/30">
+                                    <span className="h-2 w-2 rounded-full bg-emerald-300 animate-pulse" />
+                                    Streaming mock · 1.4s
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </ScrollReveal>
 
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="rounded-2xl bg-white/5 border border-white/10 p-4 shadow-lg shadow-blue-900/10">
-                            <div className="text-sm text-slate-300">
-                                TPS (tx per detik)
+                    <ScrollReveal delay={0.08}>
+                        <div className="relative grid gap-4 sm:grid-cols-2 p-3">
+                            <div className="rounded-2xl bg-white/5 border border-white/10 p-4 shadow-lg shadow-blue-900/10">
+                                <div className="text-sm text-slate-300">
+                                    TPS (tx per detik)
+                                </div>
+                                <div className="mt-1 text-3xl font-semibold text-white">
+                                    {snapshot.throughput.toFixed(0)}
+                                    <span className="text-sm text-slate-300 ml-1">
+                                        tx/s
+                                    </span>
+                                </div>
+                                <div className="text-xs text-slate-400 mt-1">
+                                    Simulasi fluktuasi ±5 tx/s
+                                </div>
                             </div>
-                            <div className="mt-1 text-3xl font-semibold text-white">
-                                {snapshot.throughput.toFixed(0)}
-                                <span className="text-sm text-slate-300 ml-1">
-                                    tx/s
-                                </span>
+                            <div className="rounded-2xl bg-white/5 border border-white/10 p-4 shadow-lg shadow-cyan-900/10">
+                                <div className="text-sm text-slate-300">
+                                    Latensi komit
+                                </div>
+                                <div className="mt-1 text-3xl font-semibold text-white">
+                                    {snapshot.latency.toFixed(2)}
+                                    <span className="text-sm text-slate-300 ml-1">
+                                        detik
+                                    </span>
+                                </div>
+                                <div className="text-xs text-slate-400 mt-1">
+                                    Pembaruan tiap 1.4s (mock)
+                                </div>
                             </div>
-                            <div className="text-xs text-slate-400 mt-1">
-                                Simulasi fluktuasi ±5 tx/s
+                            <div className="rounded-2xl bg-white/5 border border-white/10 p-4 shadow-lg shadow-emerald-900/10">
+                                <div className="text-sm text-slate-300">
+                                    Partisipasi sementara
+                                </div>
+                                <div className="mt-1 text-3xl font-semibold text-white">
+                                    {(snapshot.turnout * 100).toFixed(1)}%
+                                </div>
+                                <div className="text-xs text-slate-400 mt-1">
+                                    Belum terhubung data riil
+                                </div>
+                            </div>
+                            <div className="rounded-2xl bg-white/5 border border-white/10 p-4 shadow-lg shadow-amber-900/10">
+                                <div className="text-sm text-slate-300">
+                                    Status
+                                </div>
+                                <div className="mt-1 text-lg font-semibold text-amber-200">
+                                    Mode demonstrasi
+                                </div>
+                                <div className="text-xs text-slate-400 mt-1">
+                                    Ganti ke API/WebSocket saat siap
+                                </div>
                             </div>
                         </div>
-                        <div className="rounded-2xl bg-white/5 border border-white/10 p-4 shadow-lg shadow-cyan-900/10">
-                            <div className="text-sm text-slate-300">
-                                Latensi komit
-                            </div>
-                            <div className="mt-1 text-3xl font-semibold text-white">
-                                {snapshot.latency.toFixed(2)}
-                                <span className="text-sm text-slate-300 ml-1">
-                                    detik
-                                </span>
-                            </div>
-                            <div className="text-xs text-slate-400 mt-1">
-                                Pembaruan tiap 1.4s (mock)
-                            </div>
-                        </div>
-                        <div className="rounded-2xl bg-white/5 border border-white/10 p-4 shadow-lg shadow-emerald-900/10">
-                            <div className="text-sm text-slate-300">
-                                Partisipasi sementara
-                            </div>
-                            <div className="mt-1 text-3xl font-semibold text-white">
-                                {(snapshot.turnout * 100).toFixed(1)}%
-                            </div>
-                            <div className="text-xs text-slate-400 mt-1">
-                                Belum terhubung data riil
-                            </div>
-                        </div>
-                        <div className="rounded-2xl bg-white/5 border border-white/10 p-4 shadow-lg shadow-amber-900/10">
-                            <div className="text-sm text-slate-300">Status</div>
-                            <div className="mt-1 text-lg font-semibold text-amber-200">
-                                Mode demonstrasi
-                            </div>
-                            <div className="text-xs text-slate-400 mt-1">
-                                Ganti ke API/WebSocket saat siap
-                            </div>
-                        </div>
-                    </div>
+                    </ScrollReveal>
                 </section>
 
-                <section className="grid gap-6 lg:grid-cols-[1.35fr_1fr]">
-                    <div className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-2xl shadow-blue-900/20">
-                        <div className="flex justify-between items-center mb-4">
-                            <div>
-                                <div className="text-sm text-slate-300">
-                                    Throughput validator
+                <ScrollReveal>
+                    <section className="grid gap-6 lg:grid-cols-[1.35fr_1fr]">
+                        <div className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-2xl shadow-blue-900/20">
+                            <div className="flex justify-between items-center mb-4">
+                                <div>
+                                    <div className="text-sm text-slate-300">
+                                        Throughput validator
+                                    </div>
+                                    <div className="text-lg font-semibold text-white">
+                                        {lastValue.toFixed(1)} tx/s
+                                    </div>
                                 </div>
-                                <div className="text-lg font-semibold text-white">
-                                    {lastValue.toFixed(1)} tx/s
+                                <span className="px-2.5 py-1 rounded-full text-xs bg-blue-500/20 text-blue-100 border border-blue-300/30">
+                                    Mock stream
+                                </span>
+                            </div>
+                            <Sparkline
+                                points={series.map((p) => ({
+                                    x: p.ts,
+                                    y: p.y,
+                                }))}
+                            />
+                            <div className="text-xs text-slate-400 mt-3">
+                                Ganti dengan data WebSocket/polling dari backend
+                                ketika endpoint sudah tersedia.
+                            </div>
+                        </div>
+
+                        <div className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-2xl shadow-amber-900/15 flex flex-col gap-4">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <div className="text-sm text-slate-300">
+                                        Distribusi pilihan
+                                    </div>
+                                    <div className="text-lg font-semibold text-white">
+                                        Live mock
+                                    </div>
+                                </div>
+                                <div className="text-xs text-slate-400">
+                                    Total 100%
                                 </div>
                             </div>
-                            <span className="px-2.5 py-1 rounded-full text-xs bg-blue-500/20 text-blue-100 border border-blue-300/30">
-                                Mock stream
-                            </span>
-                        </div>
-                        <Sparkline
-                            points={series.map((p) => ({ x: p.ts, y: p.y }))}
-                        />
-                        <div className="text-xs text-slate-400 mt-3">
-                            Ganti dengan data WebSocket/polling dari backend
-                            ketika endpoint sudah tersedia.
-                        </div>
-                    </div>
-
-                    <div className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-2xl shadow-amber-900/15 flex flex-col gap-4">
-                        <div className="flex justify-between items-center">
-                            <div>
-                                <div className="text-sm text-slate-300">
-                                    Distribusi pilihan
+                            <Bar
+                                label="Pilihan A"
+                                value={snapshot.choiceA}
+                                color={COLORS.accent}
+                            />
+                            <Bar
+                                label="Pilihan B"
+                                value={snapshot.choiceB}
+                                color={COLORS.warn}
+                            />
+                            <div className="grid grid-cols-2 gap-3 text-sm text-slate-200/90">
+                                <div className="p-3 rounded-2xl bg-white/5 border border-white/10">
+                                    <div className="text-xs text-slate-400">
+                                        Pilihan A
+                                    </div>
+                                    <div className="text-xl font-semibold text-white">
+                                        {(snapshot.choiceA * 100).toFixed(1)}%
+                                    </div>
                                 </div>
-                                <div className="text-lg font-semibold text-white">
-                                    Live mock
+                                <div className="p-3 rounded-2xl bg-white/5 border border-white/10">
+                                    <div className="text-xs text-slate-400">
+                                        Pilihan B
+                                    </div>
+                                    <div className="text-xl font-semibold text-white">
+                                        {(snapshot.choiceB * 100).toFixed(1)}%
+                                    </div>
                                 </div>
                             </div>
                             <div className="text-xs text-slate-400">
-                                Total 100%
+                                Saat data riil tersedia, mapping-kan ke hasil
+                                tally backend untuk transparansi publik.
                             </div>
                         </div>
-                        <Bar
-                            label="Pilihan A"
-                            value={snapshot.choiceA}
-                            color={COLORS.accent}
-                        />
-                        <Bar
-                            label="Pilihan B"
-                            value={snapshot.choiceB}
-                            color={COLORS.warn}
-                        />
-                        <div className="grid grid-cols-2 gap-3 text-sm text-slate-200/90">
-                            <div className="p-3 rounded-2xl bg-white/5 border border-white/10">
-                                <div className="text-xs text-slate-400">
-                                    Pilihan A
-                                </div>
-                                <div className="text-xl font-semibold text-white">
-                                    {(snapshot.choiceA * 100).toFixed(1)}%
-                                </div>
-                            </div>
-                            <div className="p-3 rounded-2xl bg-white/5 border border-white/10">
-                                <div className="text-xs text-slate-400">
-                                    Pilihan B
-                                </div>
-                                <div className="text-xl font-semibold text-white">
-                                    {(snapshot.choiceB * 100).toFixed(1)}%
-                                </div>
-                            </div>
-                        </div>
-                        <div className="text-xs text-slate-400">
-                            Saat data riil tersedia, mapping-kan ke hasil tally
-                            backend untuk transparansi publik.
-                        </div>
-                    </div>
-                </section>
+                    </section>
+                </ScrollReveal>
 
-                <section className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-2xl shadow-emerald-900/15">
-                    <div className="flex justify-between items-center mb-4">
-                        <div>
-                            <div className="text-sm text-slate-300">
-                                Kapan tiap kandidat dipilih
+                <ScrollReveal>
+                    <section className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-2xl shadow-emerald-900/15">
+                        <div className="flex justify-between items-center mb-4">
+                            <div>
+                                <div className="text-sm text-slate-300">
+                                    Kapan tiap kandidat dipilih
+                                </div>
+                                <div className="text-lg font-semibold text-white">
+                                    Distribusi waktu per kandidat
+                                </div>
                             </div>
-                            <div className="text-lg font-semibold text-white">
-                                Distribusi waktu per kandidat
+                            <div className="text-xs text-slate-400">
+                                Mock, siap ganti data riil
                             </div>
                         </div>
-                        <div className="text-xs text-slate-400">
-                            Mock, siap ganti data riil
-                        </div>
-                    </div>
-                    <div className="grid gap-4 md:grid-cols-2">
-                        {candidateMoments.map((cand) => (
-                            <div
-                                key={cand.name}
-                                className="rounded-2xl bg-white/5 border border-white/10 p-4 space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2 text-slate-50 font-semibold">
-                                        <span
-                                            className="h-2.5 w-2.5 rounded-full"
-                                            style={{ background: cand.color }}
-                                        />
-                                        {cand.name}
+                        <div className="grid gap-4 md:grid-cols-2">
+                            {candidateMoments.map((cand) => (
+                                <div
+                                    key={cand.name}
+                                    className="rounded-2xl bg-white/5 border border-white/10 p-4 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2 text-slate-50 font-semibold">
+                                            <span
+                                                className="h-2.5 w-2.5 rounded-full"
+                                                style={{
+                                                    background: cand.color,
+                                                }}
+                                            />
+                                            {cand.name}
+                                        </div>
+                                        <span className="text-xs text-slate-400">
+                                            Jumlah per jam
+                                        </span>
                                     </div>
-                                    <span className="text-xs text-slate-400">
-                                        Jumlah per jam
-                                    </span>
+                                    <div className="space-y-2">
+                                        {cand.slots.map((s) => (
+                                            <ThinBar
+                                                key={s.label}
+                                                label={s.label}
+                                                value={s.value}
+                                                max={40}
+                                                color={cand.color}
+                                            />
+                                        ))}
+                                    </div>
                                 </div>
-                                <div className="space-y-2">
-                                    {cand.slots.map((s) => (
-                                        <ThinBar
-                                            key={s.label}
-                                            label={s.label}
-                                            value={s.value}
-                                            max={40}
-                                            color={cand.color}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </section>
+                            ))}
+                        </div>
+                    </section>
+                </ScrollReveal>
 
-                <section className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-2xl shadow-cyan-900/15">
-                    <div className="flex justify-between items-center mb-4">
-                        <div>
-                            <div className="text-sm text-slate-300">
-                                Puncak waktu pemilihan
+                <ScrollReveal>
+                    <section className="rounded-3xl bg-white/5 border border-white/10 p-6 shadow-2xl shadow-cyan-900/15">
+                        <div className="flex justify-between items-center mb-4">
+                            <div>
+                                <div className="text-sm text-slate-300">
+                                    Puncak waktu pemilihan
+                                </div>
+                                <div className="text-lg font-semibold text-white">
+                                    Grafik interval tersibuk
+                                </div>
                             </div>
-                            <div className="text-lg font-semibold text-white">
-                                Grafik interval tersibuk
+                            <div className="text-xs text-slate-400">
+                                Jumlah transaksi per jam
                             </div>
                         </div>
-                        <div className="text-xs text-slate-400">
-                            Jumlah transaksi per jam
-                        </div>
-                    </div>
-                    <PeakChart data={peakHours} />
-                </section>
+                        <PeakChart data={peakHours} />
+                    </section>
+                </ScrollReveal>
 
                 <section className="grid gap-4 md:grid-cols-3">
                     <div className="rounded-2xl bg-white/5 border border-white/10 p-4 shadow-lg shadow-blue-900/10">

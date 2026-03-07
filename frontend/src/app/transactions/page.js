@@ -2,6 +2,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import Navbar from "../components/Navbar";
+import ParallaxGlow from "../components/ParallaxGlow";
+import ScrollReveal from "../components/ScrollReveal";
 
 const PAGE_SIZE = 10;
 
@@ -84,78 +86,81 @@ export default function TransactionsPage() {
 
     return (
         <div className="relative min-h-screen overflow-hidden bg-slate-950 text-slate-50">
-            <div className="pointer-events-none absolute inset-0">
-                <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-blue-500/20 blur-3xl" />
-                <div className="absolute right-[-140px] top-28 h-[28rem] w-[28rem] rounded-full bg-cyan-400/15 blur-3xl" />
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,_rgba(255,255,255,0.04)_1px,_transparent_0)] bg-[length:32px_32px]" />
-            </div>
+            <ParallaxGlow />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,_rgba(255,255,255,0.04)_1px,_transparent_0)] bg-[length:32px_32px]" />
 
             <Navbar />
 
             <main className="relative z-10 max-w-6xl mx-auto px-6 py-10 flex flex-col gap-8">
-                <div className="flex flex-col gap-3">
-                    <div className="flex items-center justify-between flex-wrap gap-3">
+                <ScrollReveal>
+                    <div className="flex flex-col gap-3">
+                        <div className="flex items-center justify-between flex-wrap gap-3">
+                            <div>
+                                <p className="text-xs uppercase tracking-[0.32em] text-blue-200/70">
+                                    Transparan
+                                </p>
+                                <h1 className="text-2xl font-semibold">
+                                    Semua transaksi commit / reveal
+                                </h1>
+                                <p className="text-slate-300 text-sm">
+                                    Mock data — siap disambungkan ke endpoint
+                                    backend.
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-3 py-2 shadow-lg shadow-blue-900/20">
+                                <Search className="h-4 w-4 text-slate-300" />
+                                <input
+                                    value={query}
+                                    onChange={(e) => {
+                                        setQuery(e.target.value);
+                                        setPage(1);
+                                    }}
+                                    placeholder="Cari email/tag/waktu"
+                                    className="bg-transparent outline-none text-sm text-slate-50 placeholder:text-slate-500"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </ScrollReveal>
+
+                <ScrollReveal delay={0.08}>
+                    <div className="space-y-2">
+                        {pageItems.map((item) => (
+                            <Row key={item.id} item={item} />
+                        ))}
+                        {pageItems.length === 0 && (
+                            <div className="text-sm text-slate-400 text-center py-6 border border-dashed border-white/10 rounded-2xl">
+                                Tidak ada transaksi yang cocok.
+                            </div>
+                        )}
+                    </div>
+                </ScrollReveal>
+
+                <ScrollReveal delay={0.14}>
+                    <div className="flex items-center justify-between flex-wrap gap-3 text-sm text-slate-300">
                         <div>
-                            <p className="text-xs uppercase tracking-[0.32em] text-blue-200/70">
-                                Transparan
-                            </p>
-                            <h1 className="text-2xl font-semibold">
-                                Semua transaksi commit / reveal
-                            </h1>
-                            <p className="text-slate-300 text-sm">
-                                Mock data — siap disambungkan ke endpoint
-                                backend.
-                            </p>
+                            Menampilkan {pageItems.length} dari{" "}
+                            {filtered.length} transaksi
                         </div>
-                        <div className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-3 py-2 shadow-lg shadow-blue-900/20">
-                            <Search className="h-4 w-4 text-slate-300" />
-                            <input
-                                value={query}
-                                onChange={(e) => {
-                                    setQuery(e.target.value);
-                                    setPage(1);
-                                }}
-                                placeholder="Cari email/tag/waktu"
-                                className="bg-transparent outline-none text-sm text-slate-50 placeholder:text-slate-500"
-                            />
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={prev}
+                                disabled={safePage === 1}
+                                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/15 text-slate-50 hover:border-white/35 disabled:opacity-50">
+                                <ChevronLeft className="h-4 w-4" /> Prev
+                            </button>
+                            <span className="text-xs text-slate-400">
+                                Hal {safePage} / {totalPages}
+                            </span>
+                            <button
+                                onClick={next}
+                                disabled={safePage === totalPages}
+                                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/15 text-slate-50 hover:border-white/35 disabled:opacity-50">
+                                Next <ChevronRight className="h-4 w-4" />
+                            </button>
                         </div>
                     </div>
-                </div>
-
-                <div className="space-y-2">
-                    {pageItems.map((item) => (
-                        <Row key={item.id} item={item} />
-                    ))}
-                    {pageItems.length === 0 && (
-                        <div className="text-sm text-slate-400 text-center py-6 border border-dashed border-white/10 rounded-2xl">
-                            Tidak ada transaksi yang cocok.
-                        </div>
-                    )}
-                </div>
-
-                <div className="flex items-center justify-between flex-wrap gap-3 text-sm text-slate-300">
-                    <div>
-                        Menampilkan {pageItems.length} dari {filtered.length}{" "}
-                        transaksi
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={prev}
-                            disabled={safePage === 1}
-                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/15 text-slate-50 hover:border-white/35 disabled:opacity-50">
-                            <ChevronLeft className="h-4 w-4" /> Prev
-                        </button>
-                        <span className="text-xs text-slate-400">
-                            Hal {safePage} / {totalPages}
-                        </span>
-                        <button
-                            onClick={next}
-                            disabled={safePage === totalPages}
-                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/15 text-slate-50 hover:border-white/35 disabled:opacity-50">
-                            Next <ChevronRight className="h-4 w-4" />
-                        </button>
-                    </div>
-                </div>
+                </ScrollReveal>
             </main>
         </div>
     );
