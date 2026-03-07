@@ -150,7 +150,7 @@ function StageItem({ label, active, done, icon: Icon }) {
 export default function VotePage() {
     const router = useRouter();
     const [checkingAuth, setCheckingAuth] = useState(true);
-    const [selected, setSelected] = useState("cand-a");
+    const [selected, setSelected] = useState(null);
     const [loadingStage, setLoadingStage] = useState(null);
     const [committed, setCommitted] = useState(false);
     const [revealed, setRevealed] = useState(false);
@@ -158,13 +158,15 @@ export default function VotePage() {
     const [tally, setTally] = useState(null);
     const [statusLoading, setStatusLoading] = useState(false);
 
-    const unauthorized = (err) => err?.response?.status === 401;
+    const unauthorized = (err) =>
+        err?.response?.status === 401 || err?.response?.status === 403;
 
     const refreshStatus = async () => {
         try {
             setStatusLoading(true);
             const res = await api.get("/vote/status");
-            setCommitted(Boolean(res.data?.committed));
+            if (res.data?.committed) setCommitted(true);
+            if (res.data?.revealed) setRevealed(true);
         } catch (err) {
             if (unauthorized(err)) {
                 toast.error("Sesi berakhir, silakan login ulang");
@@ -389,7 +391,7 @@ export default function VotePage() {
                             <button
                                 type="button"
                                 onClick={submitVote}
-                                disabled={loadingStage !== null}
+                                disabled={loadingStage !== null || !selected}
                                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 text-white font-semibold px-4 py-2.5 hover:bg-blue-500 transition disabled:opacity-60">
                                 {loadingStage ? (
                                     <>
