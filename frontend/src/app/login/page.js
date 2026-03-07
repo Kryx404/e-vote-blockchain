@@ -1,6 +1,6 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import {
     Eye,
@@ -28,6 +28,15 @@ export default function Login() {
     const [loading, setLoading] = useState(false);
     const [showPwd, setShowPwd] = useState(false);
     const router = useRouter();
+    const params = useSearchParams();
+    const next = params?.get("next") || "/vote";
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        if (localStorage.getItem("token")) {
+            router.replace(next);
+        }
+    }, [router, next]);
 
     const submit = async (e) => {
         e?.preventDefault();
@@ -40,7 +49,7 @@ export default function Login() {
                 localStorage.setItem("token", res.data.token);
                 localStorage.setItem("email", res.data.email);
                 toast.success("Login berhasil");
-                router.push("/");
+                router.push(next);
             } else {
                 toast.error(res.data?.error || "Login gagal");
             }
