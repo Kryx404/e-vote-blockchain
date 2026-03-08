@@ -175,6 +175,7 @@ export default function Home() {
     const [history, setHistory] = useState([]);
     const [peakHours, setPeakHours] = useState([]);
     const [candidateMoments, setCandidateMoments] = useState([]);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
 
     useEffect(() => {
         const seed = () => {
@@ -297,6 +298,11 @@ export default function Home() {
         return () => clearInterval(id);
     }, []);
 
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        setIsLoggedIn(Boolean(localStorage.getItem("token")));
+    }, []);
+
     const lastValue = useMemo(
         () => series[series.length - 1]?.y ?? 0,
         [series],
@@ -331,11 +337,13 @@ export default function Home() {
                                 WebSocket.
                             </p>
                             <div className="flex flex-wrap items-center gap-3 mt-6">
-                                <Link
-                                    href="/login"
-                                    className="px-4 py-2.5 rounded-xl bg-blue-600 text-white font-semibold shadow-lg shadow-blue-900/40 hover:bg-blue-500 transition">
-                                    Login untuk berpartisipasi
-                                </Link>
+                                {!isLoggedIn ? (
+                                    <Link
+                                        href="/login"
+                                        className="px-4 py-2.5 rounded-xl bg-blue-600 text-white font-semibold shadow-lg shadow-blue-900/40 hover:bg-blue-500 transition">
+                                        Login untuk berpartisipasi
+                                    </Link>
+                                ) : null}
                                 <Link
                                     href="/vote"
                                     className="px-4 py-2.5 rounded-xl border border-white/15 text-slate-50 hover:border-white/35 transition">
