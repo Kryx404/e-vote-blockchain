@@ -43,6 +43,7 @@ func (a *App) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlockReq
 
 			// catat commitment
 			a.commits[tx.CredID] = tx.Commitment
+			a.saveState()
 			a.mu.Unlock()
 			res.Code = 0
 
@@ -78,6 +79,7 @@ func (a *App) FinalizeBlock(ctx context.Context, req *abcitypes.FinalizeBlockReq
 			a.mu.Lock()
 			a.revealed[tx.CredID] = true
 			a.tally[tx.Choice]++
+			a.saveState()
 			a.mu.Unlock()
 			res.Code = 0
 

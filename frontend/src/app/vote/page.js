@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import {
@@ -19,11 +19,11 @@ const candidates = [
     {
         id: "cand-a",
         name: "Kandidat A",
-        tagline: "Transparansi anggaran & digitalisasi layanan",
+        tagline: "Ekonomi digital & inovasi pendidikan",
         agenda: [
-            "Audit terbuka triwulanan",
-            "Dashboard layanan publik real-time",
-            "Standar SLA untuk setiap layanan",
+            "Skill workshop gratis 100k orang",
+            "Platform e-learning terpadu nasional",
+            "Inkubator startup dengan venture capital",
         ],
         color: "from-blue-600/70 via-blue-500/70 to-cyan-400/70",
     },
@@ -149,6 +149,7 @@ function StageItem({ label, active, done, icon: Icon }) {
 
 export default function VotePage() {
     const router = useRouter();
+    // checkingAuth tetap true hingga status on-chain selesai dicek
     const [checkingAuth, setCheckingAuth] = useState(true);
     const [selected, setSelected] = useState(null);
     const [loadingStage, setLoadingStage] = useState(null);
@@ -157,15 +158,44 @@ export default function VotePage() {
     const [salt, setSalt] = useState("");
     const [tally, setTally] = useState(null);
     const [statusLoading, setStatusLoading] = useState(false);
+    const [hasVoted, setHasVoted] = useState(null); // null = belum tahu dari chain
+    const [userEmail, setUserEmail] = useState(null);
+    const alertedRef = useRef(false);
+
+    const voteKey = (email) => (email ? `hasVoted:${email}` : null);
+    const readStoredVote = (email) => {
+        const key = voteKey(email);
+        if (!key || typeof window === "undefined") return false;
+        return localStorage.getItem(key) === "true";
+    };
+    const writeStoredVote = (email, value) => {
+        const key = voteKey(email);
+        if (!key || typeof window === "undefined") return;
+        if (value) {
+            localStorage.setItem(key, "true");
+        } else {
+            localStorage.removeItem(key);
+        }
+    };
 
     const unauthorized = (err) =>
         err?.response?.status === 401 || err?.response?.status === 403;
 
-    const refreshStatus = async () => {
+    // refreshStatus hanya untuk tombol "Segarkan status", bukan initial load
+    const refreshStatus = async (emailOverride = null) => {
+        const emailToUse = emailOverride ?? userEmail;
         try {
             setStatusLoading(true);
             const res = await api.get("/vote/status");
-            if (res.data?.committed) setCommitted(true);
+            const committedOnChain = Boolean(res.data?.committed);
+            if (committedOnChain) {
+                setCommitted(true);
+                setHasVoted(true);
+                writeStoredVote(emailToUse, true);
+            } else {
+                setHasVoted(false);
+                if (emailToUse) writeStoredVote(emailToUse, false);
+            }
             if (res.data?.revealed) setRevealed(true);
         } catch (err) {
             if (unauthorized(err)) {
@@ -185,7 +215,6 @@ export default function VotePage() {
             const res = await api.get("/tally");
             setTally(res.data);
         } catch (err) {
-            // tidak blocking, tampilkan info ringan
             const msg = err?.response?.data || err.message;
             toast.error(typeof msg === "string" ? msg : "Gagal ambil tally");
         }
@@ -198,14 +227,69 @@ export default function VotePage() {
             router.replace("/login?next=/vote");
             return;
         }
-        setCheckingAuth(false);
-        refreshStatus();
+        const email = localStorage.getItem("email") || null;
+        setUserEmail(email);
+
+        // Cek status on-chain dulu, baru tampilkan halaman
+        const init = async () => {
+            // Jika cache lokal sudah ada (di-set saat login), langsung tampilkan
+            if (readStoredVote(email)) {
+                setHasVoted(true);
+                setCheckingAuth(false); // tampilkan halaman segera
+                alertedRef.current = true;
+                // Tetap sync dengan backend di background (non-blocking)
+                api.get("/vote/status").then((res) => {
+                    if (res.data?.committed) {
+                        setCommitted(true);
+                        setRevealed(Boolean(res.data?.revealed));
+                    }
+                }).catch(() => {/* abaikan error background */});
+                return;
+            }
+            try {
+                const res = await api.get("/vote/status");
+                const committedOnChain = Boolean(res.data?.committed);
+                if (committedOnChain) {
+                    setCommitted(true);
+                    setHasVoted(true);
+                    writeStoredVote(email, true);
+                    if (!alertedRef.current) {
+                        toast.success(
+                            "Anda sudah melakukan vote. Hanya 1 kali per user.",
+                        );
+                        alertedRef.current = true;
+                    }
+                } else {
+                    setHasVoted(false);
+                }
+                if (res.data?.revealed) setRevealed(true);
+            } catch (err) {
+                if (
+                    err?.response?.status === 401 ||
+                    err?.response?.status === 403
+                ) {
+                    toast.error("Sesi berakhir, silakan login ulang");
+                    router.replace("/login?next=/vote");
+                    return;
+                }
+                setHasVoted(false);
+                toast.error("Gagal cek status voting dari blockchain");
+            } finally {
+                setCheckingAuth(false);
+            }
+        };
+
+        init();
         refreshTally();
     }, [router]);
 
     const submitVote = async () => {
         if (!selected) {
             toast.error("Pilih kandidat terlebih dulu");
+            return;
+        }
+        if (hasVoted) {
+            toast.error("Anda sudah melakukan vote. Hanya 1 kali per user.");
             return;
         }
         try {
@@ -216,6 +300,8 @@ export default function VotePage() {
             const nextSalt = commitRes.data?.salt || "demo_salt";
             setSalt(nextSalt);
             setCommitted(true);
+            setHasVoted(true);
+            writeStoredVote(userEmail, true);
             toast.success("Commit berhasil");
 
             setLoadingStage("reveal");
@@ -256,16 +342,60 @@ export default function VotePage() {
     if (checkingAuth) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-50">
-                <div className="flex items-center gap-3 text-sm text-slate-200">
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    Memeriksa sesi...
+                <div className="flex flex-col items-center gap-3 text-sm text-slate-200">
+                    <Loader2 className="h-6 w-6 animate-spin text-blue-400" />
+                    <span>Memeriksa status voting...</span>
+                    <span className="text-xs text-slate-400">
+                        Menghubungi blockchain...
+                    </span>
                 </div>
             </div>
         );
     }
 
+    // Tampilan khusus jika sudah pernah voting
+    if (hasVoted) {
+        return (
+            <div className="min-h-screen bg-slate-950 text-slate-50 relative overflow-x-hidden">
+                <ParallaxGlow />
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,_rgba(255,255,255,0.04)_1px,_transparent_0)] bg-[length:32px_32px]" />
+                <Navbar />
+                <main className="relative z-10 max-w-6xl mx-auto px-6 py-10 flex items-center justify-center min-h-[80vh]">
+                    <div className="rounded-3xl border border-emerald-400/30 bg-emerald-500/10 shadow-2xl shadow-emerald-900/30 p-10 flex flex-col items-center gap-5 max-w-md w-full text-center">
+                        <div className="h-16 w-16 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center">
+                            <CheckCircle2 className="h-8 w-8 text-emerald-300" />
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-semibold text-emerald-100">
+                                Suara Anda Sudah Tercatat
+                            </h2>
+                            <p className="text-sm text-emerald-200/70 mt-2">
+                                Anda sudah melakukan voting. Setiap user hanya
+                                diperbolehkan 1 kali vote dan tidak dapat
+                                diubah.
+                            </p>
+                        </div>
+                        <div className="w-full rounded-xl border border-emerald-300/30 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-200 flex items-center gap-2">
+                            <ShieldCheck className="h-4 w-4 shrink-0" />
+                            Status ini diverifikasi langsung dari blockchain.
+                        </div>
+                        <button
+                            type="button"
+                            onClick={refreshStatus}
+                            disabled={statusLoading}
+                            className="text-xs text-blue-200 hover:text-white border border-white/15 px-4 py-2 rounded-lg transition disabled:opacity-50">
+                            {statusLoading
+                                ? "Memeriksa..."
+                                : "Verifikasi ulang"}
+                        </button>
+                    </div>
+                </main>
+            </div>
+        );
+    }
+
     return (
-        <div className="relative min-h-screen overflow-hidden bg-slate-950 text-slate-50">
+        <div className="min-h-screen bg-slate-950 text-slate-50 relative overflow-x-hidden">
             <ParallaxGlow />
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,_rgba(255,255,255,0.04)_1px,_transparent_0)] bg-[length:32px_32px]" />
 
@@ -357,11 +487,11 @@ export default function VotePage() {
                                 <p>
                                     Kandidat dipilih:{" "}
                                     <span className="font-semibold text-white">
-                                        {
-                                            candidates.find(
-                                                (c) => c.id === selected,
-                                            )?.name
-                                        }
+                                        {selected
+                                            ? candidates.find(
+                                                  (c) => c.id === selected,
+                                              )?.name
+                                            : "Belum dipilih"}
                                     </span>
                                 </p>
                                 <p>
@@ -387,11 +517,22 @@ export default function VotePage() {
                                     done={revealed}
                                     icon={CheckCircle2}
                                 />
+                                {hasVoted ? (
+                                    <div className="rounded-lg border border-emerald-300/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">
+                                        Anda sudah melakukan vote. Pengiriman
+                                        dinonaktifkan (1x per user).
+                                    </div>
+                                ) : null}
                             </div>
                             <button
                                 type="button"
                                 onClick={submitVote}
-                                disabled={loadingStage !== null || !selected}
+                                disabled={
+                                    loadingStage !== null ||
+                                    !selected ||
+                                    hasVoted !== false ||
+                                    statusLoading
+                                }
                                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 text-white font-semibold px-4 py-2.5 hover:bg-blue-500 transition disabled:opacity-60">
                                 {loadingStage ? (
                                     <>
@@ -400,8 +541,10 @@ export default function VotePage() {
                                             ? "Mengirim commit..."
                                             : "Mengirim reveal..."}
                                     </>
-                                ) : committed && revealed ? (
-                                    "Kirim ulang suara"
+                                ) : hasVoted ? (
+                                    "Sudah voting"
+                                ) : statusLoading || hasVoted === null ? (
+                                    "Memeriksa status..."
                                 ) : (
                                     "Commit & Reveal"
                                 )}

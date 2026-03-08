@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 
 	// ganti import berikut sesuai module path di go.mod
 	"evote/backend/internal/auth"
@@ -21,6 +22,66 @@ import (
 // Ambil env
 func env(k, def string) string { if v := os.Getenv(k); v != "" { return v }; return def }
 var cometRPC = env("COMET_RPC", "http://localhost:26657")
+
+// voteStoreFile menyimpan daftar user yang sudah vote ke disk
+var voteStoreFile = env("VOTE_STORE_FILE", "vote_store.json")
+
+// VoteStore menyimpan email yang sudah vote secara persisten
+type VoteStore struct {
+	mu    sync.RWMutex
+	voted map[string]bool // email -> sudah vote?
+}
+
+var globalVoteStore = &VoteStore{voted: map[string]bool{}}
+
+func (vs *VoteStore) load() {
+	data, err := os.ReadFile(voteStoreFile)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			log.Printf("⚠️  Gagal baca vote store: %v", err)
+		}
+		return
+	}
+	vs.mu.Lock()
+	defer vs.mu.Unlock()
+	var m map[string]bool
+	if err := json.Unmarshal(data, &m); err != nil {
+		log.Printf("⚠️  Gagal parse vote store: %v", err)
+		return
+	}
+	vs.voted = m
+	log.Printf("✅ Vote store loaded: %d users sudah vote", len(vs.voted))
+}
+
+func (vs *VoteStore) save() {
+	vs.mu.RLock()
+	data, err := json.Marshal(vs.voted)
+	vs.mu.RUnlock()
+	if err != nil {
+		log.Printf("⚠️  Gagal marshal vote store: %v", err)
+		return
+	}
+	tmp := voteStoreFile + ".tmp"
+	if err := os.WriteFile(tmp, data, 0644); err != nil {
+		log.Printf("⚠️  Gagal tulis vote store: %v", err)
+		return
+	}
+	os.Rename(tmp, voteStoreFile)
+}
+
+func (vs *VoteStore) HasVoted(email string) bool {
+	vs.mu.RLock()
+	defer vs.mu.RUnlock()
+	return vs.voted[email]
+}
+
+func (vs *VoteStore) SetVoted(email string) {
+	vs.mu.Lock()
+	vs.voted[email] = true
+	vs.mu.Unlock()
+	vs.save()
+}
+
 
 type commitReq struct {
     CredID string `json:"cred_id"`
@@ -155,6 +216,8 @@ func commit(w http.ResponseWriter, r *http.Request) {
     }
     
     log.Printf("✅ COMMIT SUCCESS => User: %s | Response: %v", credID, res)
+    // Tandai user sudah vote di store persisten
+    globalVoteStore.SetVoted(credID)
     json.NewEncoder(w).Encode(map[string]any{"ok": true, "salt": salt, "rpc": res})
 }
 
@@ -246,7 +309,12 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
         return
     }
     // Balas token
-    json.NewEncoder(w).Encode(map[string]any{"ok": true, "token": token, "email": in.Email})
+    json.NewEncoder(w).Encode(map[string]any{
+        "ok":       true,
+        "token":    token,
+        "email":    in.Email,
+        "hasVoted": globalVoteStore.HasVoted(in.Email),
+    })
 }
 
 // Tangani status: cek on-chain apakah user sudah commit
@@ -277,11 +345,18 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    // query on-chain dengan HTTP GET
+    // Cek vote store lokal dulu (lebih cepat dan reliable)
+    if globalVoteStore.HasVoted(email) {
+        json.NewEncoder(w).Encode(map[string]any{"ok": true, "committed": true})
+        return
+    }
+
+    // query on-chain sebagai fallback dengan HTTP GET
     qres, err := abciQuery("/commit", []byte(email))
     if err != nil {
         log.Printf("❌ Status query failed for %s: %v", email, err)
-        http.Error(w, "failed to query chain: "+err.Error(), http.StatusInternalServerError)
+        // Jangan error — kembalikan not committed agar user bisa coba vote
+        json.NewEncoder(w).Encode(map[string]any{"ok": true, "committed": false})
         return
     }
 
@@ -290,6 +365,8 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
         if resp, ok := rr["response"].(map[string]any); ok {
             if val, _ := resp["value"].(string); val != "" {
                 committed = true
+                // Sync ke store lokal supaya next request lebih cepat
+                globalVoteStore.SetVoted(email)
             }
         }
     }
@@ -299,6 +376,9 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 
 // Mulai server
 func main() {
+    // Load vote store dari disk saat startup
+    globalVoteStore.load()
+
     mux := http.NewServeMux()
     // daftar route di file terpisah
     RegisterRoutes(mux)

@@ -48,6 +48,10 @@ export default function Login() {
             if (res.data?.ok) {
                 localStorage.setItem("token", res.data.token);
                 localStorage.setItem("email", res.data.email);
+                // simpan status vote dari backend agar /vote langsung tahu
+                if (res.data.hasVoted) {
+                    localStorage.setItem(`hasVoted:${res.data.email}`, "true");
+                }
                 toast.success("Login berhasil");
                 router.push(next);
             } else {

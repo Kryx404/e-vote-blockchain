@@ -16,6 +16,12 @@ func (a *App) Query(ctx context.Context, req *abcitypes.QueryRequest) (*abcitype
 		b, _ := json.Marshal(a.tally)
 		a.mu.RUnlock()
 		return &abcitypes.QueryResponse{Code: 0, Value: b}, nil
+	case "/commit":
+		credID := string(req.Data)
+		a.mu.RLock()
+		commitment := a.commits[credID]
+		a.mu.RUnlock()
+		return &abcitypes.QueryResponse{Code: 0, Value: []byte(commitment)}, nil
 	default:
 		return &abcitypes.QueryResponse{Code: 0, Value: []byte("ok")}, nil
 	}
