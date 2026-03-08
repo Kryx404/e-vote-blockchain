@@ -12,6 +12,7 @@ services:
         volumes:
             - ./data/node1/config:/root/.cometbft/config
             - ./data/node1/data:/root/.cometbft/data
+            - ./data/node1/evote_state:/data
             - ./scripts/entrypoint-distributed.sh:/entrypoint.sh:ro
         ports:
             - "26657:26657" # RPC
@@ -35,6 +36,7 @@ services:
         volumes:
             - ./data/node2/config:/root/.cometbft/config
             - ./data/node2/data:/root/.cometbft/data
+            - ./data/node2/evote_state:/data
             - ./scripts/entrypoint-distributed.sh:/entrypoint.sh:ro
         ports:
             - "26667:26657" # RPC
@@ -57,6 +59,9 @@ services:
         container_name: evote-backend
         environment:
             - COMET_RPC=http://validator1:26657
+            - VOTE_STORE_FILE=/app/data/vote_store.json
+        volumes:
+            - ./data/vote_store:/app/data
         ports:
             - "8080:8080"
         networks:
@@ -88,6 +93,7 @@ services:
         volumes:
             - ./data/validator3/config:/root/.cometbft/config
             - ./data/validator3/data:/root/.cometbft/data
+            - ./data/validator3/evote_state:/data
             - ./scripts/entrypoint-distributed.sh:/entrypoint.sh:ro
         ports:
             - "26687:26657"
@@ -111,6 +117,7 @@ services:
         volumes:
             - ./data/validator4/config:/root/.cometbft/config
             - ./data/validator4/data:/root/.cometbft/data
+            - ./data/validator4/evote_state:/data
             - ./scripts/entrypoint-distributed.sh:/entrypoint.sh:ro
         ports:
             - "26697:26657"
