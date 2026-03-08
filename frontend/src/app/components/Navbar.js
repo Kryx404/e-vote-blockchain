@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { clearAuth, readAuth } from "@/lib/auth";
 
 const navLinks = [
+    { href: "/", label: "Beranda", tone: "ghost" },
     { href: "/candidates", label: "Kandidat", tone: "ghost" },
     {
         href: "/vote",
